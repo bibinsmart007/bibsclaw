@@ -41,11 +41,12 @@ export function createDashboardServer(
   });
 
   // Chat endpoint
-  app.post("/api/chat", async (req, res) => {
+  app.post("/api/chat", async (req, res): Promise<void> => {
     try {
       const { message } = req.body;
       if (!message) {
-        return res.status(400).json({ error: "Message is required" });
+        res.status(400).json({ error: "Message is required" });
+        return;
       }
       const response = await agent.chat(message);
       res.json({ response });
@@ -55,10 +56,11 @@ export function createDashboardServer(
   });
 
   // Voice transcribe endpoint
-  app.post("/api/voice/transcribe", async (req, res) => {
+  app.post("/api/voice/transcribe", async (req, res): Promise<void> => {
     try {
       if (!stt.enabled) {
-        return res.status(400).json({ error: "STT not configured" });
+        res.status(400).json({ error: "STT not configured" });
+        return;
       }
       const chunks: Buffer[] = [];
       req.on("data", (chunk) => chunks.push(chunk));
@@ -73,10 +75,11 @@ export function createDashboardServer(
   });
 
   // Voice synthesize endpoint
-  app.post("/api/voice/speak", async (req, res) => {
+  app.post("/api/voice/speak", async (req, res): Promise<void> => {
     try {
       if (!tts.enabled) {
-        return res.status(400).json({ error: "TTS not configured" });
+        res.status(400).json({ error: "TTS not configured" });
+        return;
       }
       const { text } = req.body;
       const audioBase64 = await tts.synthesizeToBase64(text);
