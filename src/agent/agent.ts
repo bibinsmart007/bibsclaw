@@ -20,46 +20,36 @@ export interface AgentEvents {
 }
 
 export class BibsClawAgent extends EventEmitter {
-  private client: Anthropic;
-  private conversationHistory: Anthropic.MessageParam[] = [];
+  private anthropicClient: Anthropic | null = null;
+  private conversationHistory: any[] = [];
+  private perplexityHistory: { role: string; content: string }[] = [];
   private systemPrompt: string;
   private isRunning = false;
 
   constructor() {
     super();
-    this.client = new Anthropic({ apiKey: appConfig.ai.apiKey });
+    if (appConfig.ai.anthropicApiKey) {
+      this.anthropicClient = new Anthropic({ apiKey: appConfig.ai.anthropicApiKey });
+    }
     this.systemPrompt = this.buildSystemPrompt();
   }
 
   private buildSystemPrompt(): string {
-    return `You are BibsClaw, Bibin's personal AI coding assistant and automation agent.
+    return `You are BibsClaw, Bibin's personal AI assistant built with love.
+You are helpful, friendly, and always ready to chat.
 
-You have access to tools that let you read/write files, run commands, and manage git.
+You can:
+- Answer questions on any topic
+- Search the web for current information
+- Help with coding, writing, and creative tasks
+- Have natural conversations
+- Help manage projects and automation
+
 You are working in project directory: ${appConfig.project.dir}
 
-Core behaviors:
-1. ALWAYS create a git branch before making changes (use git_create_branch)
-2. Read existing code before modifying it
-3. Write complete, working code - never leave TODOs or placeholders
-4. Run tests after making changes if tests exist
-5. Commit your work with clear messages
-6. Explain what you did and why after completing a task
-
-Automation capabilities:
-- You can create and run scheduled tasks
-- You can automate repetitive workflows
-- You can manage social media posting schedules
-- You can set up web scraping and data collection
-- You can create API integrations
-
-Safety rules:
-- Never modify .env, .env.local, or .git directory
-- Never run commands outside the allowed list
-- Never write files larger than ${appConfig.guardrails.maxFileSizeKb}KB
-- Always work on a feature branch, never directly on main
-- If tests fail after your changes, fix them before committing
-
-Be concise, direct, and helpful. You are Bibin's trusted dev partner.`;
+Be concise, direct, and helpful. You are Bibin's trusted AI partner.
+Always respond warmly and helpfully to any message, including greetings like "hello".
+Never refuse to respond. Always engage with the user.`;
   }
 
   async chat(userMessage: string): Promise<string> {
@@ -68,91 +58,22 @@ Be concise, direct, and helpful. You are Bibin's trusted dev partner.`;
     }
 
     this.isRunning = true;
+
     this.emit("message", {
       role: "user",
       content: userMessage,
       timestamp: new Date(),
     } as AgentMessage);
 
-    this.conversationHistory.push({
-      role: "user",
-      content: userMessage,
-    });
-
     try {
       let finalResponse = "";
-      let iterationCount = 0;
-      const maxIterations = 25;
 
-      while (iterationCount < maxIterations) {
-        iterationCount++;
-        this.emit("thinking", `Thinking... (step ${iterationCount})`);
-
-        const response = await this.client.messages.create({
-          model: appConfig.ai.model,
-          max_tokens: 8192,
-          system: this.systemPrompt,
-          tools: toolDefinitions as any,
-          messages: this.conversationHistory,
-        });
-
-        if (response.stop_reason === "end_turn") {
-          const textBlocks = response.content.filter(
-            (block) => block.type === "text"
-          );
-          finalResponse = textBlocks
-            .map((b) => (b as Anthropic.TextBlock).text)
-            .join("\n");
-
-          this.conversationHistory.push({
-            role: "assistant",
-            content: response.content,
-          });
-          break;
-        }
-
-        if (response.stop_reason === "tool_use") {
-          this.conversationHistory.push({
-            role: "assistant",
-            content: response.content,
-          });
-
-          const toolUseBlocks = response.content.filter(
-            (block) => block.type === "tool_use"
-          ) as Anthropic.ToolUseBlock[];
-
-          const toolResults: Anthropic.ToolResultBlockParam[] = [];
-
-          for (const toolUse of toolUseBlocks) {
-            this.emit("toolCall", toolUse.name, toolUse.input);
-
-            const result = await executeTool(
-              toolUse.name,
-              toolUse.input as Record<string, any>
-            );
-
-            this.emit("toolResult", toolUse.name, result);
-
-            toolResults.push({
-              type: "tool_result",
-              tool_use_id: toolUse.id,
-              content: result.success
-                ? result.output
-                : `ERROR: ${result.error}`,
-              is_error: !result.success,
-            });
-          }
-
-          this.conversationHistory.push({
-            role: "user",
-            content: toolResults,
-          });
-        }
-      }
-
-      if (iterationCount >= maxIterations) {
-        finalResponse +=
-          "\n\n(Reached maximum iteration limit. Some work may be incomplete.)";
+      if (appConfig.ai.provider === "perplexity") {
+        finalResponse = await this.chatWithPerplexity(userMessage);
+      } else if (this.anthropicClient) {
+        finalResponse = await this.chatWithAnthropic(userMessage);
+      } else {
+        finalResponse = "No AI provider configured. Please set PERPLEXITY_API_KEY or ANTHROPIC_API_KEY in your .env file.";
       }
 
       this.emit("message", {
@@ -172,11 +93,150 @@ Be concise, direct, and helpful. You are Bibin's trusted dev partner.`;
     }
   }
 
+  private async chatWithPerplexity(userMessage: string): Promise<string> {
+    this.emit("thinking", "Thinking with Perplexity...");
+
+    this.perplexityHistory.push({ role: "user", content: userMessage });
+
+    // Keep only last 20 messages to avoid token limits
+    if (this.perplexityHistory.length > 20) {
+      this.perplexityHistory = this.perplexityHistory.slice(-20);
+    }
+
+    const messages = [
+      { role: "system", content: this.systemPrompt },
+      ...this.perplexityHistory,
+    ];
+
+    const response = await fetch("https://api.perplexity.ai/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${appConfig.ai.perplexityApiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: appConfig.ai.perplexityModel,
+        messages,
+        max_tokens: 4096,
+        temperature: 0.7,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Perplexity API error (${response.status}): ${errorText}`);
+    }
+
+    const data = await response.json() as any;
+    const assistantMessage = data.choices?.[0]?.message?.content || "I couldn't generate a response. Please try again.";
+
+    this.perplexityHistory.push({ role: "assistant", content: assistantMessage });
+
+    return assistantMessage;
+  }
+
+  private async chatWithAnthropic(userMessage: string): Promise<string> {
+    if (!this.anthropicClient) {
+      throw new Error("Anthropic client not initialized");
+    }
+
+    this.conversationHistory.push({
+      role: "user",
+      content: userMessage,
+    });
+
+    let finalResponse = "";
+    let iterationCount = 0;
+    const maxIterations = 25;
+
+    while (iterationCount < maxIterations) {
+      iterationCount++;
+      this.emit("thinking", `Thinking... (step ${iterationCount})`);
+
+      const response = await this.anthropicClient.messages.create({
+        model: appConfig.ai.anthropicModel,
+        max_tokens: 8192,
+        system: this.systemPrompt,
+        tools: toolDefinitions as any,
+        messages: this.conversationHistory,
+      });
+
+      if (response.stop_reason === "end_turn") {
+        const textBlocks = response.content.filter(
+          (block) => block.type === "text"
+        );
+        finalResponse = textBlocks
+          .map((b) => (b as Anthropic.TextBlock).text)
+          .join("\n");
+
+        this.conversationHistory.push({
+          role: "assistant",
+          content: response.content,
+        });
+        break;
+      }
+
+      if (response.stop_reason === "tool_use") {
+        this.conversationHistory.push({
+          role: "assistant",
+          content: response.content,
+        });
+
+        const toolUseBlocks = response.content.filter(
+          (block) => block.type === "tool_use"
+        ) as Anthropic.ToolUseBlock[];
+
+        const toolResults: Anthropic.ToolResultBlockParam[] = [];
+
+        for (const toolUse of toolUseBlocks) {
+          this.emit("toolCall", toolUse.name, toolUse.input);
+
+          const result = await executeTool(
+            toolUse.name,
+            toolUse.input as Record<string, string>
+          );
+          this.emit("toolResult", toolUse.name, result);
+
+          toolResults.push({
+            type: "tool_result",
+            tool_use_id: toolUse.id,
+            content: result.success
+              ? result.output
+              : `ERROR: ${result.error}`,
+            is_error: !result.success,
+          });
+        }
+
+        this.conversationHistory.push({
+          role: "user",
+          content: toolResults,
+        });
+      }
+    }
+
+    if (iterationCount >= maxIterations) {
+      finalResponse +=
+        "\n\n(Reached maximum iteration limit. Some work may be incomplete.)";
+    }
+
+    return finalResponse;
+  }
+
   clearHistory(): void {
     this.conversationHistory = [];
+    this.perplexityHistory = [];
   }
 
   getHistory(): AgentMessage[] {
+    if (appConfig.ai.provider === "perplexity") {
+      return this.perplexityHistory
+        .filter((msg) => typeof msg.content === "string")
+        .map((msg) => ({
+          role: msg.role as "user" | "assistant",
+          content: msg.content,
+          timestamp: new Date(),
+        }));
+    }
     return this.conversationHistory
       .filter((msg) => typeof msg.content === "string")
       .map((msg) => ({
