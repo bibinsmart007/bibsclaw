@@ -33,9 +33,11 @@ export function createDashboardServer(
   app.get("/api/health", (_req, res) => {
     res.json({
       status: "ok",
-      version: "1.0.0",
+      version: "2.0.0",
+      aiProvider: appConfig.ai.provider,
       sttEnabled: stt.enabled,
       ttsEnabled: tts.enabled,
+      telegramEnabled: appConfig.telegram.enabled,
       agentBusy: agent.busy,
     });
   });
@@ -124,10 +126,17 @@ export function createDashboardServer(
   io.on("connection", (socket) => {
     console.log("Dashboard client connected");
 
+    // Send connection confirmation
+    socket.emit("connected", { status: "ok", provider: appConfig.ai.provider });
+
     socket.on("chat", async (message: string) => {
       socket.emit("thinking", true);
-      const response = await agent.chat(message);
-      socket.emit("response", response);
+      try {
+        const response = await agent.chat(message);
+        socket.emit("response", response);
+      } catch (err) {
+        socket.emit("error", String(err));
+      }
       socket.emit("thinking", false);
     });
 
@@ -138,8 +147,12 @@ export function createDashboardServer(
 
   // Forward agent events to Socket.IO
   agent.on("thinking", (text) => io.emit("agentThinking", text));
-  agent.on("toolCall", (name, input) => io.emit("toolCall", { name, input }));
-  agent.on("toolResult", (name, result) => io.emit("toolResult", { name, result }));
+  agent.on("toolCall", (name, input) =>
+    io.emit("toolCall", { name, input })
+  );
+  agent.on("toolResult", (name, result) =>
+    io.emit("toolResult", { name, result })
+  );
   agent.on("message", (msg) => io.emit("message", msg));
   agent.on("error", (err) => io.emit("error", err.message));
 
