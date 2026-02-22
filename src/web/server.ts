@@ -1,0 +1,148 @@
+import express from "express";
+import cors from "cors";
+import { createServer } from "node:http";
+import { Server as SocketIOServer } from "socket.io";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { appConfig } from "../config.js";
+import { BibsClawAgent } from "../agent/agent.js";
+import { SpeechToText } from "../voice/stt.js";
+import { TextToSpeech } from "../voice/tts.js";
+import { TaskScheduler } from "../automation/scheduler.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+export function createDashboardServer(
+  agent: BibsClawAgent,
+  stt: SpeechToText,
+  tts: TextToSpeech,
+  scheduler: TaskScheduler
+) {
+  const app = express();
+  const httpServer = createServer(app);
+  const io = new SocketIOServer(httpServer, {
+    cors: { origin: "*" },
+  });
+
+  app.use(cors());
+  app.use(express.json());
+  app.use(express.static(path.join(__dirname, "public")));
+
+  // Health check
+  app.get("/api/health", (_req, res) => {
+    res.json({
+      status: "ok",
+      version: "1.0.0",
+      sttEnabled: stt.enabled,
+      ttsEnabled: tts.enabled,
+      agentBusy: agent.busy,
+    });
+  });
+
+  // Chat endpoint
+  app.post("/api/chat", async (req, res) => {
+    try {
+      const { message } = req.body;
+      if (!message) {
+        return res.status(400).json({ error: "Message is required" });
+      }
+      const response = await agent.chat(message);
+      res.json({ response });
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  // Voice transcribe endpoint
+  app.post("/api/voice/transcribe", async (req, res) => {
+    try {
+      if (!stt.enabled) {
+        return res.status(400).json({ error: "STT not configured" });
+      }
+      const chunks: Buffer[] = [];
+      req.on("data", (chunk) => chunks.push(chunk));
+      req.on("end", async () => {
+        const audioBuffer = Buffer.concat(chunks);
+        const text = await stt.transcribeBuffer(audioBuffer);
+        res.json({ text });
+      });
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  // Voice synthesize endpoint
+  app.post("/api/voice/speak", async (req, res) => {
+    try {
+      if (!tts.enabled) {
+        return res.status(400).json({ error: "TTS not configured" });
+      }
+      const { text } = req.body;
+      const audioBase64 = await tts.synthesizeToBase64(text);
+      res.json({ audio: audioBase64 });
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  // Task scheduler endpoints
+  app.get("/api/tasks", (_req, res) => {
+    res.json(scheduler.listTasks());
+  });
+
+  app.post("/api/tasks", (req, res) => {
+    const { name, description, cronExpression, action } = req.body;
+    const task = scheduler.addTask(name, description, cronExpression, action);
+    res.json(task);
+  });
+
+  app.delete("/api/tasks/:id", (req, res) => {
+    const removed = scheduler.removeTask(req.params.id);
+    res.json({ removed });
+  });
+
+  app.patch("/api/tasks/:id/toggle", (req, res) => {
+    const toggled = scheduler.toggleTask(req.params.id);
+    res.json({ toggled });
+  });
+
+  // Conversation history
+  app.get("/api/history", (_req, res) => {
+    res.json(agent.getHistory());
+  });
+
+  app.post("/api/history/clear", (_req, res) => {
+    agent.clearHistory();
+    res.json({ cleared: true });
+  });
+
+  // Socket.IO for real-time updates
+  io.on("connection", (socket) => {
+    console.log("Dashboard client connected");
+
+    socket.on("chat", async (message: string) => {
+      socket.emit("thinking", true);
+      const response = await agent.chat(message);
+      socket.emit("response", response);
+      socket.emit("thinking", false);
+    });
+
+    socket.on("disconnect", () => {
+      console.log("Dashboard client disconnected");
+    });
+  });
+
+  // Forward agent events to Socket.IO
+  agent.on("thinking", (text) => io.emit("agentThinking", text));
+  agent.on("toolCall", (name, input) => io.emit("toolCall", { name, input }));
+  agent.on("toolResult", (name, result) => io.emit("toolResult", { name, result }));
+  agent.on("message", (msg) => io.emit("message", msg));
+  agent.on("error", (err) => io.emit("error", err.message));
+
+  // Forward scheduler events
+  scheduler.on("taskRun", (task) => io.emit("taskRun", task));
+  scheduler.on("taskAdded", (task) => io.emit("taskAdded", task));
+
+  return { app, httpServer, io };
+}
