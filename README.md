@@ -1,9 +1,11 @@
 # BibsClaw
 
-Personal AI assistant with voice interface, autonomous coding agent, task automation, and a web dashboard. Built by Bibin.
+Personal AI assistant with Perplexity-powered conversations, Telegram bot access, voice interface, task automation, and a web dashboard. Built by Bibin.
 
 ## Features
 
+- **Perplexity AI Integration**: Chat with real-time web search and up-to-date knowledge
+- **Telegram Bot**: Access BibsClaw from anywhere via Telegram
 - **Voice Interface**: Talk to BibsClaw using natural voice (Whisper STT + ElevenLabs TTS)
 - **AI Coding Agent**: Claude-powered agent that reads, writes, and fixes code autonomously
 - **Git Safety**: Always works on feature branches, never touches main directly
@@ -22,9 +24,9 @@ cd bibsclaw
 # Install dependencies
 npm install
 
-# Copy and configure environment
+# Configure environment
 cp .env.example .env
-# Edit .env with your API keys
+# Edit .env with your API keys (at minimum set PERPLEXITY_API_KEY)
 
 # Build and run
 npm run build
@@ -40,82 +42,42 @@ Copy `.env.example` to `.env` and set your keys:
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| ANTHROPIC_API_KEY | Yes | Claude API key |
-| OPENAI_API_KEY | No | Whisper STT (voice input) |
-| ELEVENLABS_API_KEY | No | ElevenLabs TTS (voice output) |
-| PROJECT_DIR | No | Project directory to manage |
-| PORT | No | Dashboard port (default: 3200) |
+| `PERPLEXITY_API_KEY` | Yes* | Perplexity API key for AI chat |
+| `ANTHROPIC_API_KEY` | Yes* | Anthropic API key (fallback) |
+| `TELEGRAM_BOT_TOKEN` | No | Telegram bot token from @BotFather |
+| `OPENAI_API_KEY` | No | For Whisper voice transcription |
+| `ELEVENLABS_API_KEY` | No | For text-to-speech |
+
+*At least one AI provider key is required.
 
 ## Architecture
 
 ```
 src/
-  index.ts              # Main entry point + CLI REPL
-  config.ts             # Environment config with Zod validation
-  agent/
-    agent.ts            # Claude-powered AI agent with tool loop
-    tools.ts            # Dev tools (file ops, git, shell commands)
-  voice/
-    stt.ts              # Speech-to-Text (OpenAI Whisper)
-    tts.ts              # Text-to-Speech (ElevenLabs)
-  automation/
-    scheduler.ts        # Task scheduler with persistence
-  web/
-    server.ts           # Express + Socket.IO dashboard server
-    public/
-      index.html        # Web dashboard UI
+  agent/       - AI agent (Perplexity + Anthropic with tool use)
+  telegram/    - Telegram bot integration (grammy)
+  voice/       - Speech-to-text and text-to-speech
+  automation/  - Task scheduler
+  web/         - Express dashboard + Socket.IO
+  config.ts    - Environment configuration
+  index.ts     - Main entry point
 ```
 
-## CLI Commands
+## Telegram Setup
 
-| Command | Description |
-|---------|-------------|
-| `/tasks` | List all scheduled tasks |
-| `/clear` | Clear conversation history |
-| `/help` | Show available commands |
-| `quit` | Exit BibsClaw |
-| *(anything else)* | Sent to the AI agent |
+1. Message @BotFather on Telegram
+2. Create a new bot with `/newbot`
+3. Copy the token to `TELEGRAM_BOT_TOKEN` in `.env`
+4. Optionally set `TELEGRAM_ALLOWED_USERS` to restrict access
+5. Start BibsClaw and message your bot!
 
-## API Endpoints
+## Dashboard
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | /api/health | Health check and status |
-| POST | /api/chat | Send message to agent |
-| POST | /api/voice/transcribe | Transcribe audio to text |
-| POST | /api/voice/speak | Convert text to speech |
-| GET | /api/tasks | List scheduled tasks |
-| POST | /api/tasks | Create a scheduled task |
-| DELETE | /api/tasks/:id | Remove a task |
-| PATCH | /api/tasks/:id/toggle | Enable/disable a task |
-| GET | /api/history | Get conversation history |
-| POST | /api/history/clear | Clear conversation |
-
-## Safety & Guardrails
-
-- Agent always works on a **feature branch** (prefix: `bibsclaw/`)
-- Blocked paths: `.env`, `.env.local`, `node_modules`, `dist`, `.git`
-- Only allowed shell commands can be executed
-- Max file size limit (default 500KB)
-- Tests must pass before committing (configurable)
-- Auto-merge disabled by default
-
-## Tech Stack
-
-- TypeScript + Node.js 22+
-- Claude (Anthropic SDK) for AI reasoning
-- OpenAI Whisper for speech-to-text
-- ElevenLabs for text-to-speech
-- Express + Socket.IO for web dashboard
-- simple-git for git operations
-- Zod for config validation
-
-## Requirements
-
-- Node.js >= 22
-- Anthropic API key (required)
-- OpenAI API key (optional, for voice input)
-- ElevenLabs API key (optional, for voice output)
+Open `http://localhost:3200` in your browser for the web dashboard with:
+- Real-time chat with AI
+- Voice input/output
+- Task scheduler management
+- Tool activity monitoring
 
 ## License
 
