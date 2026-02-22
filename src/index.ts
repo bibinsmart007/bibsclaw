@@ -6,15 +6,16 @@ import { SpeechToText } from "./voice/stt.js";
 import { TextToSpeech } from "./voice/tts.js";
 import { TaskScheduler } from "./automation/scheduler.js";
 import { createDashboardServer } from "./web/server.js";
+import { TelegramBot } from "./telegram/bot.js";
 
 const BANNER = `
-${chalk.cyan("  ____  _ _          ____ _               ")}
-${chalk.cyan(" | __ )(_) |__  ___ / ___| | __ ___      __")}
-${chalk.cyan(" |  _ \\| | '_ \\/ __| |   | |/ _` \\ \\ /\\ / /")}
-${chalk.cyan(" | |_) | | |_) \\__ \\ |___| | (_| |\\ V  V / ")}
-${chalk.cyan(" |____/|_|_.__/|___/\\____|_|\\__,_| \\_/\\_/  ")}
+${chalk.cyan("  ____  _ _       ____  _             ")}
+${chalk.cyan(" | __ )(_) |__  / ___|| | __ ___      ")}
+${chalk.cyan(" |  _ \\| | '_ \\ \\___ \\| |/ _` \\ \\ /\\ / /")}
+${chalk.cyan(" | |_) | | |_) | ___) | | (_| |\\ V  V / ")}
+${chalk.cyan(" |____/|_|_.__/ |____/|_|\\__,_| \\_/\\_/  ")}
 ${chalk.gray("  Personal AI Assistant & Automation Agent")}
-${chalk.gray("  Built by Bibin | v1.0.0")}
+${chalk.gray("  Built by Bibin | v2.0.0")}
 `;
 
 async function main() {
@@ -27,6 +28,7 @@ async function main() {
   const stt = new SpeechToText();
   const tts = new TextToSpeech();
   const scheduler = new TaskScheduler();
+  const telegramBot = new TelegramBot(agent);
 
   // Initialize scheduler
   await scheduler.init();
@@ -43,7 +45,7 @@ async function main() {
 
   agent.on("toolResult", (name, result) => {
     const status = result.success ? chalk.green("OK") : chalk.red("FAIL");
-    console.log(chalk.blue(`  ${name}: ${status}`));
+    console.log(chalk.blue(`    ${name}: ${status}`));
   });
 
   agent.on("error", (err) => {
@@ -55,6 +57,14 @@ async function main() {
     console.log(chalk.magenta(`\n  Scheduled task ran: ${task.name}`));
     agent.chat(task.action).catch(console.error);
   });
+
+  // Start Telegram bot
+  if (telegramBot.enabled) {
+    await telegramBot.start();
+    console.log(chalk.green("  Telegram bot started"));
+  } else {
+    console.log(chalk.gray("  Telegram bot: disabled (no token)"));
+  }
 
   // Start dashboard server
   if (appConfig.web.dashboardEnabled) {
@@ -68,7 +78,12 @@ async function main() {
 
   // Status summary
   console.log(chalk.yellow("\nStatus:"));
-  console.log(`  AI Model: ${chalk.white(appConfig.ai.model)}`);
+  console.log(`  AI Provider: ${chalk.white(appConfig.ai.provider)}`);
+  if (appConfig.ai.provider === "perplexity") {
+    console.log(`  Perplexity Model: ${chalk.white(appConfig.ai.perplexityModel)}`);
+  } else {
+    console.log(`  Anthropic Model: ${chalk.white(appConfig.ai.anthropicModel)}`);
+  }
   console.log(
     `  Voice STT: ${
       stt.enabled ? chalk.green("enabled") : chalk.gray("disabled")
@@ -77,6 +92,11 @@ async function main() {
   console.log(
     `  Voice TTS: ${
       tts.enabled ? chalk.green("enabled") : chalk.gray("disabled")
+    }`
+  );
+  console.log(
+    `  Telegram: ${
+      telegramBot.enabled ? chalk.green("enabled") : chalk.gray("disabled")
     }`
   );
   console.log(`  Project: ${chalk.white(appConfig.project.dir)}`);
@@ -98,7 +118,6 @@ async function main() {
 
   rl.on("line", async (line) => {
     const input = line.trim();
-
     if (!input) {
       rl.prompt();
       return;
@@ -107,6 +126,7 @@ async function main() {
     if (input === "quit" || input === "exit") {
       console.log(chalk.yellow("\nShutting down BibsClaw..."));
       scheduler.stopAll();
+      await telegramBot.stop();
       rl.close();
       process.exit(0);
     }
@@ -138,11 +158,11 @@ async function main() {
 
     if (input === "/help") {
       console.log(chalk.yellow("  Commands:"));
-      console.log("  /tasks   - List scheduled tasks");
-      console.log("  /clear   - Clear conversation history");
-      console.log("  /help    - Show this help");
-      console.log("  quit     - Exit BibsClaw");
-      console.log("  (anything else is sent to the AI agent)");
+      console.log("    /tasks  - List scheduled tasks");
+      console.log("    /clear  - Clear conversation history");
+      console.log("    /help   - Show this help");
+      console.log("    quit    - Exit BibsClaw");
+      console.log("    (anything else is sent to the AI agent)");
       rl.prompt();
       return;
     }
