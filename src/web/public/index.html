@@ -10,10 +10,11 @@
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0d1117; color: #c9d1d9; height: 100vh; display: flex; flex-direction: column; }
     header { background: #161b22; border-bottom: 1px solid #30363d; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
     header h1 { font-size: 20px; color: #58a6ff; }
-    header .status { display: flex; gap: 12px; font-size: 13px; }
+    header .status { display: flex; gap: 12px; font-size: 13px; align-items: center; }
     .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; }
     .status-dot.active { background: #3fb950; }
-    .status-dot.inactive { background: #484f58; }
+    .status-dot.inactive { background: #f85149; }
+    .provider-badge { background: #1f6feb; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
     main { flex: 1; display: flex; overflow: hidden; }
     .chat-panel { flex: 1; display: flex; flex-direction: column; }
     .sidebar { width: 300px; background: #161b22; border-left: 1px solid #30363d; padding: 16px; overflow-y: auto; }
@@ -23,53 +24,78 @@
     .message.user { background: #1f6feb; color: #fff; margin-left: auto; }
     .message.assistant { background: #21262d; border: 1px solid #30363d; }
     .message.tool { background: #0d1117; border: 1px solid #30363d; font-family: monospace; font-size: 12px; color: #8b949e; }
+    .message.system { background: #0d1117; color: #8b949e; text-align: center; font-size: 13px; border: 1px dashed #30363d; }
     .thinking { color: #8b949e; font-style: italic; padding: 8px 24px; font-size: 13px; }
     .input-area { padding: 16px 24px; background: #161b22; border-top: 1px solid #30363d; display: flex; gap: 8px; }
     .input-area input { flex: 1; background: #0d1117; border: 1px solid #30363d; color: #c9d1d9; padding: 10px 16px; border-radius: 6px; font-size: 14px; outline: none; }
     .input-area input:focus { border-color: #58a6ff; }
-    .input-area button { background: #238636; color: #fff; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; }
-    .input-area button:hover { background: #2ea043; }
-    .input-area button:disabled { background: #21262d; cursor: not-allowed; }
+    .input-area button { border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; }
+    .btn-send { background: #238636; color: #fff; }
+    .btn-send:hover { background: #2ea043; }
+    .btn-send:disabled { background: #21262d; cursor: not-allowed; }
+    .btn-voice { background: #1f6feb; color: #fff; padding: 10px 14px; }
+    .btn-voice:hover { background: #388bfd; }
+    .btn-voice.recording { background: #f85149; animation: pulse 1s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    .btn-clear { background: #21262d; color: #8b949e; padding: 10px 14px; }
+    .btn-clear:hover { background: #30363d; }
     .task-item { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 10px; margin-bottom: 8px; font-size: 13px; }
     .task-item .name { color: #58a6ff; font-weight: 600; }
     .task-item .meta { color: #8b949e; font-size: 11px; margin-top: 4px; }
+    .welcome { text-align: center; padding: 40px; color: #8b949e; }
+    .welcome h2 { color: #58a6ff; margin-bottom: 8px; font-size: 24px; }
+    .welcome p { font-size: 14px; line-height: 1.6; }
   </style>
 </head>
 <body>
   <header>
     <h1>BibsClaw</h1>
     <div class="status">
-      <span><span class="status-dot active" id="statusDot"></span><span id="statusText">Connected</span></span>
+      <span id="providerBadge" class="provider-badge">--</span>
+      <span><span id="statusDot" class="status-dot inactive"></span> <span id="statusText">Connecting...</span></span>
     </div>
   </header>
   <main>
     <div class="chat-panel">
-      <div class="messages" id="messages"></div>
+      <div class="messages" id="messages">
+        <div class="welcome">
+          <h2>Welcome to BibsClaw</h2>
+          <p>Your personal AI assistant powered by Perplexity.<br>Type a message below or use the microphone to talk.</p>
+        </div>
+      </div>
       <div class="thinking" id="thinking" style="display:none">Thinking...</div>
       <div class="input-area">
         <input type="text" id="messageInput" placeholder="Type a message or command..." autocomplete="off">
-        <button id="sendBtn" onclick="sendMessage()">Send</button>
+        <button class="btn-voice" id="voiceBtn" title="Voice input">&#127908;</button>
+        <button class="btn-clear" id="clearBtn" title="Clear history">&#128465;</button>
+        <button class="btn-send" id="sendBtn">Send</button>
       </div>
     </div>
     <div class="sidebar">
       <h3>Scheduled Tasks</h3>
-      <div id="taskList"><p style="color:#484f58;font-size:13px">No tasks yet</p></div>
+      <div id="taskList"><div style="color:#8b949e;font-size:13px">No tasks yet</div></div>
       <h3 style="margin-top:24px">Tool Activity</h3>
       <div id="toolLog"></div>
     </div>
   </main>
   <script>
-    const socket = io();
+    const socket = io({ reconnection: true, reconnectionAttempts: 10, reconnectionDelay: 1000 });
     const messagesDiv = document.getElementById('messages');
     const thinkingDiv = document.getElementById('thinking');
     const input = document.getElementById('messageInput');
     const sendBtn = document.getElementById('sendBtn');
+    const voiceBtn = document.getElementById('voiceBtn');
+    const clearBtn = document.getElementById('clearBtn');
     const statusDot = document.getElementById('statusDot');
     const statusText = document.getElementById('statusText');
+    const providerBadge = document.getElementById('providerBadge');
     const taskList = document.getElementById('taskList');
     const toolLog = document.getElementById('toolLog');
 
     function addMessage(role, text) {
+      // Remove welcome message on first chat
+      const welcome = messagesDiv.querySelector('.welcome');
+      if (welcome) welcome.remove();
       const div = document.createElement('div');
       div.className = 'message ' + role;
       div.textContent = text;
@@ -86,43 +112,63 @@
       socket.emit('chat', msg);
     }
 
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') sendMessage();
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendMessage(); });
+    sendBtn.addEventListener('click', sendMessage);
+
+    clearBtn.addEventListener('click', () => {
+      fetch('/api/history/clear', { method: 'POST' }).then(() => {
+        messagesDiv.innerHTML = '<div class="message system">Conversation cleared</div>';
+      });
     });
 
-    socket.on('response', (text) => {
-      addMessage('assistant', text);
-      sendBtn.disabled = false;
+    // Voice recording
+    let mediaRecorder = null;
+    let audioChunks = [];
+    voiceBtn.addEventListener('click', async () => {
+      if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
+        voiceBtn.classList.remove('recording');
+        return;
+      }
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+        mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
+        mediaRecorder.onstop = async () => {
+          stream.getTracks().forEach(t => t.stop());
+          const blob = new Blob(audioChunks, { type: 'audio/wav' });
+          addMessage('system', 'Transcribing voice...');
+          try {
+            const resp = await fetch('/api/voice/transcribe', { method: 'POST', body: blob });
+            const data = await resp.json();
+            if (data.text) {
+              input.value = data.text;
+              sendMessage();
+            } else if (data.error) {
+              addMessage('system', 'Voice error: ' + data.error);
+            }
+          } catch (err) {
+            addMessage('system', 'Voice transcription failed. Is OpenAI API key set?');
+          }
+        };
+        mediaRecorder.start();
+        voiceBtn.classList.add('recording');
+      } catch (err) {
+        addMessage('system', 'Microphone access denied or not available.');
+      }
     });
 
-    socket.on('thinking', (isThinking) => {
-      thinkingDiv.style.display = isThinking ? 'block' : 'none';
-    });
+    socket.on('response', (text) => { addMessage('assistant', text); sendBtn.disabled = false; });
+    socket.on('thinking', (isThinking) => { thinkingDiv.style.display = isThinking ? 'block' : 'none'; if (!isThinking) sendBtn.disabled = false; });
+    socket.on('agentThinking', (text) => { thinkingDiv.textContent = text; thinkingDiv.style.display = 'block'; });
+    socket.on('error', (errMsg) => { addMessage('system', 'Error: ' + errMsg); sendBtn.disabled = false; });
+    socket.on('toolCall', (data) => { const div = document.createElement('div'); div.className = 'message tool'; div.textContent = 'Tool: ' + data.name; toolLog.prepend(div); });
+    socket.on('toolResult', (data) => { const div = document.createElement('div'); div.className = 'message tool'; div.textContent = data.name + ': ' + (data.result.success ? 'OK' : 'FAIL'); toolLog.prepend(div); });
+    socket.on('taskRun', (task) => { const div = document.createElement('div'); div.className = 'message tool'; div.textContent = 'Task ran: ' + task.name; toolLog.prepend(div); });
 
-    socket.on('agentThinking', (text) => {
-      thinkingDiv.textContent = text;
-      thinkingDiv.style.display = 'block';
-    });
-
-    socket.on('toolCall', (data) => {
-      const div = document.createElement('div');
-      div.className = 'message tool';
-      div.textContent = 'Tool: ' + data.name;
-      toolLog.prepend(div);
-    });
-
-    socket.on('toolResult', (data) => {
-      const div = document.createElement('div');
-      div.className = 'message tool';
-      div.textContent = data.name + ': ' + (data.result.success ? 'OK' : 'FAIL');
-      toolLog.prepend(div);
-    });
-
-    socket.on('taskRun', (task) => {
-      const div = document.createElement('div');
-      div.className = 'message tool';
-      div.textContent = 'Task ran: ' + task.name;
-      toolLog.prepend(div);
+    socket.on('connected', (data) => {
+      providerBadge.textContent = (data.provider || 'AI').toUpperCase();
     });
 
     socket.on('disconnect', () => {
@@ -142,7 +188,7 @@
           div.innerHTML = '<div class="name">' + t.name + '</div><div class="meta">' + t.cronExpression + ' | Runs: ' + t.runCount + '</div>';
           taskList.appendChild(div);
         });
-      });
+      }).catch(() => {});
     });
   </script>
 </body>
