@@ -10,6 +10,9 @@ COPY src/ ./src/
 
 RUN npm run build
 
+# Copy static public files to dist (TypeScript doesn't copy non-TS files)
+RUN cp -r src/web/public dist/web/public
+
 FROM node:22-slim
 
 WORKDIR /app
