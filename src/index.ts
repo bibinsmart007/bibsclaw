@@ -69,7 +69,7 @@ async function main() {
   // Start dashboard server
   if (appConfig.web.dashboardEnabled) {
     const { httpServer } = createDashboardServer(agent, stt, tts, scheduler);
-    httpServer.listen(appConfig.web.port, () => {
+    httpServer.listen(appConfig.web.port, "0.0.0.0", () => {
       console.log(
         chalk.green(`  Dashboard: http://localhost:${appConfig.web.port}`)
       );
