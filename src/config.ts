@@ -5,9 +5,17 @@ import path from "node:path";
 dotenvConfig();
 
 const envSchema = z.object({
-  // AI Provider
-  ANTHROPIC_API_KEY: z.string().min(1, "ANTHROPIC_API_KEY is required"),
+  // AI Provider (Anthropic for tool-use agent)
+  ANTHROPIC_API_KEY: z.string().default(""),
   ANTHROPIC_MODEL: z.string().default("claude-sonnet-4-20250514"),
+
+  // Perplexity API (for conversational AI + web search)
+  PERPLEXITY_API_KEY: z.string().default(""),
+  PERPLEXITY_MODEL: z.string().default("sonar"),
+
+  // Telegram Bot
+  TELEGRAM_BOT_TOKEN: z.string().default(""),
+  TELEGRAM_ALLOWED_USERS: z.string().default(""),
 
   // Speech-to-Text
   OPENAI_API_KEY: z.string().default(""),
@@ -44,7 +52,6 @@ const envSchema = z.object({
 
 function loadConfig() {
   const parsed = envSchema.safeParse(process.env);
-
   if (!parsed.success) {
     console.error("Invalid environment configuration:");
     for (const issue of parsed.error.issues) {
@@ -55,10 +62,29 @@ function loadConfig() {
 
   const env = parsed.data;
 
+  // Determine which AI provider to use
+  const hasPerplexity = env.PERPLEXITY_API_KEY.length > 0;
+  const hasAnthropic = env.ANTHROPIC_API_KEY.length > 0;
+
+  if (!hasPerplexity && !hasAnthropic) {
+    console.error("ERROR: You must set at least PERPLEXITY_API_KEY or ANTHROPIC_API_KEY in .env");
+    process.exit(1);
+  }
+
   return {
     ai: {
-      apiKey: env.ANTHROPIC_API_KEY,
-      model: env.ANTHROPIC_MODEL,
+      provider: hasPerplexity ? "perplexity" as const : "anthropic" as const,
+      perplexityApiKey: env.PERPLEXITY_API_KEY,
+      perplexityModel: env.PERPLEXITY_MODEL,
+      anthropicApiKey: env.ANTHROPIC_API_KEY,
+      anthropicModel: env.ANTHROPIC_MODEL,
+    },
+    telegram: {
+      botToken: env.TELEGRAM_BOT_TOKEN,
+      enabled: env.TELEGRAM_BOT_TOKEN.length > 0,
+      allowedUsers: env.TELEGRAM_ALLOWED_USERS
+        ? env.TELEGRAM_ALLOWED_USERS.split(",").map((u) => u.trim())
+        : [],
     },
     stt: {
       apiKey: env.OPENAI_API_KEY,
