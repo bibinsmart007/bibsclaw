@@ -10,7 +10,7 @@ import { TelegramBot } from "./telegram/bot.js";
 
 const BANNER = `
 ${chalk.cyan("  ____  _ _       ____  _             ")}
-${chalk.cyan(" | __ )(_) |__  / ___|| | __ ___      ")}
+${chalk.cyan(" | __ )(_) |__   / ___|| | __ ___      ")}
 ${chalk.cyan(" |  _ \\| | '_ \\ \\___ \\| |/ _` \\ \\ /\\ / /")}
 ${chalk.cyan(" | |_) | | |_) | ___) | | (_| |\\ V  V / ")}
 ${chalk.cyan(" |____/|_|_.__/ |____/|_|\\__,_| \\_/\\_/  ")}
@@ -71,7 +71,7 @@ async function main() {
     const { httpServer } = createDashboardServer(agent, stt, tts, scheduler);
     httpServer.listen(appConfig.web.port, "0.0.0.0", () => {
       console.log(
-        chalk.green(`  Dashboard: http://localhost:${appConfig.web.port}`)
+        chalk.green(`  Dashboard: http://0.0.0.0:${appConfig.web.port}`)
       );
     });
   }
@@ -103,80 +103,103 @@ async function main() {
   console.log(
     `  Tasks: ${chalk.white(String(scheduler.listTasks().length))} scheduled`
   );
-  console.log(
-    chalk.gray("\nType a message to chat, or 'quit' to exit.\n")
-  );
 
-  // Interactive CLI loop
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-    prompt: chalk.cyan("bibs> "),
-  });
+  // Only start interactive CLI if running in a terminal (TTY)
+  // In production (Railway/Docker), skip readline to prevent process.exit on stdin close
+  if (process.stdin.isTTY) {
+    console.log(
+      chalk.gray("\nType a message to chat, or 'quit' to exit.\n")
+    );
 
-  rl.prompt();
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+      prompt: chalk.cyan("bibs> "),
+    });
 
-  rl.on("line", async (line) => {
-    const input = line.trim();
-    if (!input) {
+    rl.prompt();
+
+    rl.on("line", async (line) => {
+      const input = line.trim();
+      if (!input) {
+        rl.prompt();
+        return;
+      }
+
+      if (input === "quit" || input === "exit") {
+        console.log(chalk.yellow("\nShutting down BibsClaw..."));
+        scheduler.stopAll();
+        await telegramBot.stop();
+        rl.close();
+        process.exit(0);
+      }
+
+      if (input === "/tasks") {
+        const tasks = scheduler.listTasks();
+        if (tasks.length === 0) {
+          console.log(chalk.gray("  No scheduled tasks."));
+        } else {
+          for (const task of tasks) {
+            const status = task.enabled
+              ? chalk.green("active")
+              : chalk.gray("paused");
+            console.log(
+              `    ${status} ${task.name} (${task.cronExpression}) - ran ${task.runCount}x`
+            );
+          }
+        }
+        rl.prompt();
+        return;
+      }
+
+      if (input === "/clear") {
+        agent.clearHistory();
+        console.log(chalk.gray("  Conversation cleared."));
+        rl.prompt();
+        return;
+      }
+
+      if (input === "/help") {
+        console.log(chalk.yellow("  Commands:"));
+        console.log("    /tasks  - List scheduled tasks");
+        console.log("    /clear  - Clear conversation history");
+        console.log("    /help   - Show this help");
+        console.log("    quit    - Exit BibsClaw");
+        console.log("    (anything else is sent to the AI agent)");
+        rl.prompt();
+        return;
+      }
+
+      // Send to agent
+      const response = await agent.chat(input);
+      console.log(chalk.white(`\n${response}\n`));
       rl.prompt();
-      return;
-    }
+    });
 
-    if (input === "quit" || input === "exit") {
-      console.log(chalk.yellow("\nShutting down BibsClaw..."));
+    rl.on("close", () => {
+      scheduler.stopAll();
+      process.exit(0);
+    });
+  } else {
+    // Running in production (no TTY) - just keep the server running
+    console.log(chalk.green("\nRunning in server mode (no TTY detected)."));
+    console.log(chalk.green("Dashboard and API endpoints are active.\n"));
+
+    // Handle graceful shutdown
+    process.on("SIGTERM", async () => {
+      console.log(chalk.yellow("Received SIGTERM, shutting down..."));
       scheduler.stopAll();
       await telegramBot.stop();
-      rl.close();
       process.exit(0);
-    }
+    });
 
-    if (input === "/tasks") {
-      const tasks = scheduler.listTasks();
-      if (tasks.length === 0) {
-        console.log(chalk.gray("  No scheduled tasks."));
-      } else {
-        for (const task of tasks) {
-          const status = task.enabled
-            ? chalk.green("active")
-            : chalk.gray("paused");
-          console.log(
-            `  ${status} ${task.name} (${task.cronExpression}) - ran ${task.runCount}x`
-          );
-        }
-      }
-      rl.prompt();
-      return;
-    }
-
-    if (input === "/clear") {
-      agent.clearHistory();
-      console.log(chalk.gray("  Conversation cleared."));
-      rl.prompt();
-      return;
-    }
-
-    if (input === "/help") {
-      console.log(chalk.yellow("  Commands:"));
-      console.log("    /tasks  - List scheduled tasks");
-      console.log("    /clear  - Clear conversation history");
-      console.log("    /help   - Show this help");
-      console.log("    quit    - Exit BibsClaw");
-      console.log("    (anything else is sent to the AI agent)");
-      rl.prompt();
-      return;
-    }
-
-    // Send to agent
-    const response = await agent.chat(input);
-    console.log(chalk.white(`\n${response}\n`));
-    rl.prompt();
-  });
-
-  rl.on("close", () => {
-    scheduler.stopAll();
-    process.exit(0);
-  });
+    process.on("SIGINT", async () => {
+      console.log(chalk.yellow("Received SIGINT, shutting down..."));
+      scheduler.stopAll();
+      await telegramBot.stop();
+      process.exit(0);
+    });
+  }
 }
 
 main().catch((err) => {
