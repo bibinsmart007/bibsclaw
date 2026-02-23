@@ -3,10 +3,7 @@ export class SocialScheduler {
   private posts: ScheduledPost[] = [];
   private timer: ReturnType<typeof setInterval> | null = null;
   schedule(post: Omit<ScheduledPost, "status">): void { this.posts.push({ ...post, status: "pending" }); }
-  start(): void {
-    this.timer = setInterval(() => this.checkPending(), 60000);
-    console.log("[SocialScheduler] Started");
-  }
+  start(): void { this.timer = setInterval(() => this.checkPending(), 60000); }
   stop(): void { if (this.timer) clearInterval(this.timer); }
   private async checkPending(): Promise<void> {
     const now = new Date();
@@ -16,17 +13,16 @@ export class SocialScheduler {
       }
     }
   }
-  private async publish(_post: ScheduledPost): Promise<void> { console.log(`[SocialScheduler] Publishing to ${_post.platform}`); }
+  private async publish(_post: ScheduledPost): Promise<void> { console.log("[SocialScheduler] Publishing to " + _post.platform); }
   getPending(): ScheduledPost[] { return this.posts.filter(p => p.status === "pending"); }
   getAll(): ScheduledPost[] { return [...this.posts]; }
-  cancel(id: string): boolean { const p = this.posts.find(p => p.id === id); if (p && p.status === "pending") { p.status = "failed"; return true; } return false; }
+  cancel(id: string): boolean { const p = this.posts.find(x => x.id === id); if (p && p.status === "pending") { p.status = "failed"; return true; } return false; }
   importFromCSV(csv: string): number {
-    const lines = csv.trim().split("
-").slice(1);
+    const lines = csv.trim().split("\n").slice(1);
     let count = 0;
     for (const line of lines) {
-      const [platform, content, dateStr] = line.split(",").map(s => s.trim());
-      if (platform && content && dateStr) { this.schedule({ id: `csv-${Date.now()}-${count}`, platform, content, scheduledAt: new Date(dateStr) }); count++; }
+      const parts = line.split(",").map((s: string) => s.trim());
+      if (parts.length >= 3) { this.schedule({ id: "csv-" + Date.now() + "-" + count, platform: parts[0], content: parts[1], scheduledAt: new Date(parts[2]) }); count++; }
     }
     return count;
   }
