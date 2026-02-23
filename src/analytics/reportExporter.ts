@@ -39,8 +39,7 @@ export class ReportExporter {
       lines.push("");
     }
     const fp = path.join(this.outputDir, this.genName(config.title, "csv"));
-    fs.writeFileSync(fp, lines.join("
-"), "utf-8");
+    fs.writeFileSync(fp, lines.join("\n"), "utf-8");
     return fp;
   }
 

@@ -57,8 +57,7 @@ export class MarkdownRenderer {
   }
 
   private renderCodeBlocks(text: string): string {
-    return text.replace(/```(\w*)
-([\s\S]*?)```/g, (_match, lang, code) => {
+    return text.replace(/```(\w*)\n([\s\S]*?)```/g, (_match, lang, code) => {
       const language = LANGUAGE_MAP[lang] || lang || "plaintext";
       const highlighted = this.highlightSyntax(code.trim(), language);
       return `<div class="code-block"><div class="code-header"><span class="code-lang">${language}</span><button class="copy-btn" onclick="navigator.clipboard.writeText(this.closest('.code-block').querySelector('code').textContent)">Copy</button></div><pre><code class="language-${language}">${highlighted}</code></pre></div>`;
@@ -117,8 +116,7 @@ export class MarkdownRenderer {
       result = result.replace(new RegExp(`\b(${k})\b`, "g"), `<span class="kw">${k}</span>`);
     });
     result = result.replace(/("[^"]*"|'[^']*'|\`[^\`]*\`)/g, '<span class="str">$1</span>');
-    result = result.replace(/(\/\/[^
-]*)/g, '<span class="cmt">$1</span>');
+    result = result.replace(/(\/\/[^\n]*)/g, '<span class="cmt">$1</span>');
     result = result.replace(/(\d+\.?\d*)/g, '<span class="num">$1</span>');
     return result;
   }

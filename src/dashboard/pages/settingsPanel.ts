@@ -143,11 +143,11 @@ export class SettingsPanel extends EventEmitter {
     this.settings = this.deepMerge(DEFAULT_SETTINGS, initial || {}) as AppSettings;
   }
 
-  private deepMerge(target: Record<string, unknown>, source: Record<string, unknown>): Record<string, unknown> {
+  private deepMerge(target: any, source: any): any {
     const result = { ...target };
     for (const key of Object.keys(source)) {
       if (source[key] && typeof source[key] === "object" && !Array.isArray(source[key])) {
-        result[key] = this.deepMerge((target[key] as Record<string, unknown>) || {}, source[key] as Record<string, unknown>);
+        result[key] = this.deepMerge(target[key] || {}, source[key]);
       } else {
         result[key] = source[key];
       }
@@ -156,11 +156,11 @@ export class SettingsPanel extends EventEmitter {
   }
 
   get<T>(section: keyof AppSettings, key: string): T {
-    return (this.settings[section] as Record<string, unknown>)[key] as T;
+    return ((this.settings as any)[section])[key] as T;
   }
 
   set(section: keyof AppSettings, key: string, value: unknown): void {
-    const sectionObj = this.settings[section] as Record<string, unknown>;
+    const sectionObj = (this.settings as any)[section];
     const oldValue = sectionObj[key];
     sectionObj[key] = value;
     this.changeLog.push({ timestamp: new Date(), section, key, oldValue, newValue: value });
@@ -181,7 +181,7 @@ export class SettingsPanel extends EventEmitter {
 
   reset(section?: keyof AppSettings): void {
     if (section) {
-      (this.settings as Record<string, unknown>)[section] = JSON.parse(JSON.stringify(DEFAULT_SETTINGS[section]));
+      (this.settings as any)[section] = JSON.parse(JSON.stringify(DEFAULT_SETTINGS[section]));
     } else {
       this.settings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS)) as AppSettings;
     }

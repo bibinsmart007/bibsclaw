@@ -1,3 +1,17 @@
+/* eslint-disable */
+declare global {
+  interface MediaQueryList {
+    matches: boolean;
+    media: string;
+    addEventListener(type: string, listener: (e: any) => void): void;
+    removeEventListener(type: string, listener: (e: any) => void): void;
+  }
+  interface Window {
+    matchMedia(query: string): MediaQueryList;
+  }
+  var window: Window & typeof globalThis;
+}
+/* eslint-enable */
 import { EventEmitter } from "events";
 
 export type ThemeMode = "light" | "dark" | "system";
