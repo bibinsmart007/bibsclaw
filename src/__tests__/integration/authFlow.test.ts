@@ -1,7 +1,7 @@
 // Integration Tests - Auth Flow (Phase 1.3)
 // Tests authentication pipeline from login to session
 
-import { describe, it, expect, beforeEach } from "@jest/globals";
+import { describe, it, expect, beforeEach } from "vitest";
 
 interface LoginRequest {
   email: string;

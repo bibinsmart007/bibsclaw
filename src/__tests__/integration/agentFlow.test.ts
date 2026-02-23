@@ -1,7 +1,7 @@
 // Integration Tests - Agent Chat Flow (Phase 1.3)
 // Tests the complete agent conversation pipeline
 
-import { describe, it, expect, beforeEach } from "@jest/globals";
+import { describe, it, expect, beforeEach } from "vitest";
 
 // Mock interfaces for agent integration test
 interface AgentMessage {
