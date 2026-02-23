@@ -60,30 +60,30 @@ BibsClaw is a personal AI assistant with:
 *Priority: Smarter Agent, Better Voice, Multi-Model*
 
 ### 2.1 Multi-Model AI Orchestration
-- [ ] Add Google Gemini as third AI provider
-- [ ] Add OpenAI GPT-4o as fourth provider
-- [ ] Implement smart model routing (fast queries to small models, complex to large)
-- [ ] Add model comparison mode (ask same question to multiple models)
-- [ ] Implement cost tracking per model/request
-- [ ] Add model fallback chain (Perplexity -> Claude -> Gemini -> GPT)
+- [x] Add Google Gemini as third AI provider
+- [x] Add OpenAI GPT-4o as fourth provider
+- [x] Implement smart model routing (fast queries to small models, complex to large)
+- [x] Add model comparison mode (ask same question to multiple models)
+- [x] Implement cost tracking per model/request
+- [x] Add model fallback chain (Perplexity -> Claude -> Gemini -> GPT)
 - [ ] Support custom/local models via Ollama integration
 
 ### 2.2 Advanced Agent Capabilities
-- [ ] Add web scraping tool (fetch and parse URLs)
+- [x] Add web scraping tool (fetch and parse URLs)
 - [ ] Add image generation tool (DALL-E / Stability AI)
-- [ ] Add code execution sandbox (safe Python/JS runtime)
+- [x] Add code execution sandbox (safe Python/JS runtime)
 - [ ] Add database query tool (run SQL against project DB)
-- [ ] Add HTTP request tool (make API calls on behalf of user)
+- [x] Add HTTP request tool (make API calls on behalf of user)
 - [ ] Add file upload/download tool
 - [ ] Add screenshot/browser automation tool (Puppeteer)
-- [ ] Implement agent memory (long-term context across sessions)
+- [x] Implement agent memory (long-term context across sessions)
 - [ ] Add multi-step planning with task decomposition
 - [ ] Implement tool chaining (output of one tool feeds into another)
 
 ### 2.3 Voice Interface 2.0
 - [ ] Add wake word detection (Hey BibsClaw)
-- [ ] Support multi-language voice input (Arabic, Hindi, Malayalam)
-- [ ] Add voice command shortcuts (deploy, check status, run tests)
+- [x] Support multi-language voice input (Arabic, Hindi, Malayalam)
+- [x] Add voice command shortcuts (deploy, check status, run tests)
 - [ ] Implement continuous conversation mode
 - [ ] Add voice cloning for personalized TTS (ElevenLabs Voice Lab)
 - [ ] Support real-time streaming TTS (sentence-by-sentence playback)
@@ -93,7 +93,7 @@ BibsClaw is a personal AI assistant with:
 - [ ] Implement RAG (Retrieval-Augmented Generation) with project docs
 - [ ] Add vector database for semantic search (Pinecone/ChromaDB)
 - [ ] Build knowledge base from codebase analysis
-- [ ] Implement conversation summarization for long chats
+- [x] Implement conversation summarization for long chats
 - [ ] Add user preference learning over time
 - [ ] Support document upload and Q&A (PDF, docs, spreadsheets)
 
