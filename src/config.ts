@@ -83,6 +83,10 @@ function loadConfig() {
       perplexityModel: env.PERPLEXITY_MODEL,
       anthropicApiKey: env.ANTHROPIC_API_KEY,
       anthropicModel: env.ANTHROPIC_MODEL,
+      geminiApiKey: env.GEMINI_API_KEY,
+      geminiModel: env.GEMINI_MODEL,
+      openaiChatApiKey: env.OPENAI_CHAT_API_KEY,
+      openaiModel: env.OPENAI_CHAT_MODEL,
     },
     telegram: {
       botToken: env.TELEGRAM_BOT_TOKEN,
@@ -96,12 +100,14 @@ function loadConfig() {
       model: env.STT_MODEL,
       language: env.STT_LANGUAGE,
       enabled: env.OPENAI_API_KEY.length > 0,
+      languages: env.STT_LANGUAGES ? env.STT_LANGUAGES.split(",").map((l: string) => l.trim()) : ["en"],
     },
     tts: {
       apiKey: env.ELEVENLABS_API_KEY,
       voiceId: env.ELEVENLABS_VOICE_ID,
       model: env.ELEVENLABS_MODEL,
       enabled: env.ELEVENLABS_API_KEY.length > 0,
+      streaming: env.TTS_STREAMING === "true",
     },
     web: {
       port: env.PORT,

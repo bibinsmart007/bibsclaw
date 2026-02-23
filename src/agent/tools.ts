@@ -4,6 +4,10 @@ import { execSync } from "node:child_process";
 import { simpleGit, type SimpleGit } from "simple-git";
 import { glob } from "glob";
 import { appConfig } from "../config.js";
+import { fetchWebPage, searchWeb } from "./webScraper.js";
+import { httpRequest } from "./httpTool.js";
+import { executeCode } from "./codeSandbox.js";
+
 
 export interface ToolResult {
   success: boolean;
@@ -248,6 +252,54 @@ export const toolDefinitions = [
       properties: {
         dir_path: { type: "string", description: "Directory path relative to project root" },
       },
+    },
+  },
+  {
+    name: "fetch_webpage",
+    description: "Fetch and extract text content from a URL",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        url: { type: "string", description: "URL to fetch" },
+      },
+      required: ["url"],
+    },
+  },
+  {
+    name: "search_web",
+    description: "Search the web using DuckDuckGo and return top results",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        query: { type: "string", description: "Search query" },
+      },
+      required: ["query"],
+    },
+  },
+  {
+    name: "http_request",
+    description: "Make an HTTP request to an external API",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        url: { type: "string", description: "Request URL" },
+        method: { type: "string", description: "HTTP method (GET, POST, PUT, DELETE)" },
+        headers: { type: "object", description: "Request headers" },
+        body: { type: "string", description: "Request body (for POST/PUT)" },
+      },
+      required: ["url"],
+    },
+  },
+  {
+    name: "execute_code",
+    description: "Execute code in a sandboxed environment. Supports javascript, typescript, python, bash",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        code: { type: "string", description: "Code to execute" },
+        language: { type: "string", description: "Programming language (javascript, typescript, python, bash)" },
+      },
+      required: ["code"],
     },
   },
 ];
