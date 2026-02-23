@@ -24,24 +24,24 @@ BibsClaw is a personal AI assistant with:
 
 ### 1.1 Authentication & Security
 - [x] Add JWT-based authentication for the web dashboard
-- [ ] Implement session management with token refresh
+- [x] Implement session management with token refresh
 - [x] Add rate limiting to all API endpoints
-- [ ] Encrypt sensitive data in .bibsclaw/tasks.json
-- [ ] Add CORS origin restrictions (replace wildcard)
-- [ ] Implement API key rotation mechanism
-- [ ] Add 2FA support for dashboard login
+- [x] Encrypt sensitive data in .bibsclaw/tasks.json
+- [x] Add CORS origin restrictions (replace wildcard)
+- [x] Implement API key rotation mechanism
+- [x] Add 2FA support for dashboard login
 
 ### 1.2 Error Handling & Resilience
-- [ ] Add global error boundary in dashboard UI
-- [ ] Implement retry logic with exponential backoff for API calls
-- [ ] Add health check monitoring with auto-restart
-- [ ] Implement graceful degradation when APIs are unavailable
+- [x] Add global error boundary in dashboard UI
+- [x] Implement retry logic with exponential backoff for API calls
+- [x] Add health check monitoring with auto-restart
+- [x] Implement graceful degradation when APIs are unavailable
 - [x] Add structured logging with Winston/Pino (replace console.log)
-- [ ] Implement request timeout management for all external calls
+- [x] Implement request timeout management for all external calls
 
 ### 1.3 Testing & CI/CD
 - [x] Add unit tests for all tools (readFile, writeFile, gitStatus, etc.)
-- [ ] Add integration tests for agent chat flow
+- [x] Add integration tests for agent chat flow
 - [ ] Add E2E tests for dashboard (Playwright)
 - [x] Set up GitHub Actions CI pipeline (lint, test, build)
 - [ ] Add automated deployment to Railway on main push
@@ -50,9 +50,9 @@ BibsClaw is a personal AI assistant with:
 ### 1.4 Database Layer
 - [x] Replace JSON file storage with SQLite/PostgreSQL
 - [x] Persist conversation history across restarts
-- [ ] Add task execution history and logs
-- [ ] Implement user preferences storage
-- [ ] Add analytics data collection (usage patterns)
+- [x] Add task execution history and logs
+- [x] Implement user preferences storage
+- [x] Add analytics data collection (usage patterns)
 
 ---
 
@@ -177,8 +177,8 @@ BibsClaw is a personal AI assistant with:
 
 ### 4.4 User Management
 - [ ] Multi-user support with role-based access
-- [ ] Admin panel for user management
-- [ ] Usage quotas per user
+- [x] Admin panel for user management
+- [x] Usage quotas per user
 - [ ] Audit log for all actions
 - [ ] Team collaboration features
 
