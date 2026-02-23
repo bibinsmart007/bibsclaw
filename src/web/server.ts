@@ -5,6 +5,10 @@ import { Server as SocketIOServer } from "socket.io";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { appConfig } from "../config.js";
+import { RateLimiter } from "../middleware/rateLimiter.js";
+import { logger } from "../middleware/logger.js";
+import { AuthManager } from "../auth/auth.js";
+import { Database } from "../database/db.js";
 import { BibsClawAgent } from "../agent/agent.js";
 import { SpeechToText } from "../voice/stt.js";
 import { TextToSpeech } from "../voice/tts.js";
@@ -14,6 +18,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export function createDashboardServer(
+  db: Database,
+  auth: AuthManager,
   agent: BibsClawAgent,
   stt: SpeechToText,
   tts: TextToSpeech,
@@ -26,7 +32,21 @@ export function createDashboardServer(
   });
 
   app.use(cors());
-  app.use(express.json());
+  app.use(express.json({ limit: "1mb" }));
+
+  // Security headers
+  app.use((_req, res, next) => {
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("X-Frame-Options", "DENY");
+    res.setHeader("X-XSS-Protection", "1; mode=block");
+    next();
+  });
+
+  // Rate limiting
+  const rateLimiter = new RateLimiter(60 * 1000, 100);
+  app.use(rateLimiter.middleware());
+
+  const log = logger.child("server");
   app.use(express.static(path.join(__dirname, "public")));
 
   // Health check
@@ -122,9 +142,43 @@ export function createDashboardServer(
     res.json({ cleared: true });
   });
 
+  // Authentication endpoints
+  app.post("/api/auth/login", (req, res): void => {
+    const { username, password } = req.body;
+    if (!username || !password) {
+      res.status(400).json({ error: "Username and password required" });
+      return;
+    }
+    const user = auth.validateCredentials(username, password);
+    if (!user) {
+      log.warn("Failed login attempt", { username });
+      res.status(401).json({ error: "Invalid credentials" });
+      return;
+    }
+    const session = auth.createSession(user);
+    log.info("User logged in", { username });
+    res.json({ token: session.token, user: session.user, expiresAt: session.expiresAt });
+  });
+
+  app.post("/api/auth/logout", (req, res) => {
+    const token = req.headers.authorization?.replace("Bearer ", "");
+    if (token) auth.revokeToken(token);
+    res.json({ success: true });
+  });
+
+  // Chat history from database
+  app.get("/api/history/db", (_req, res) => {
+    res.json(db.getChatHistory());
+  });
+
+  // Task logs
+  app.get("/api/tasks/logs", (_req, res) => {
+    res.json(db.getTaskLogs());
+  });
+
   // Socket.IO for real-time updates
   io.on("connection", (socket) => {
-    console.log("Dashboard client connected");
+    log.info("Dashboard client connected");
 
     // Send connection confirmation
     socket.emit("connected", { status: "ok", provider: appConfig.ai.provider });
@@ -134,6 +188,9 @@ export function createDashboardServer(
       try {
         const response = await agent.chat(message);
         socket.emit("response", response);
+        // Persist to database
+        db.addChatMessage("user", message, appConfig.ai.provider).catch(() => {});
+        db.addChatMessage("assistant", response, appConfig.ai.provider).catch(() => {});
         // Send TTS audio if enabled
         if (tts.enabled) {
           try {
@@ -150,7 +207,7 @@ export function createDashboardServer(
     });
 
     socket.on("disconnect", () => {
-      console.log("Dashboard client disconnected");
+      log.info("Dashboard client disconnected");
     });
   });
 

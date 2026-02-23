@@ -31,6 +31,11 @@ const envSchema = z.object({
   PORT: z.coerce.number().default(3200),
   DASHBOARD_ENABLED: z.string().default("true"),
 
+  // Authentication
+  AUTH_ENABLED: z.string().default("false"),
+  AUTH_ADMIN_USER: z.string().default("admin"),
+  AUTH_ADMIN_PASSWORD: z.string().default(""),
+
   // Git / Project
   PROJECT_DIR: z.string().default(process.cwd()),
   GIT_AUTO_BRANCH: z.string().default("true"),
@@ -101,6 +106,11 @@ function loadConfig() {
     web: {
       port: env.PORT,
       dashboardEnabled: env.DASHBOARD_ENABLED === "true",
+    },
+    auth: {
+      enabled: env.AUTH_ENABLED === "true" && env.AUTH_ADMIN_PASSWORD.length > 0,
+      adminUser: env.AUTH_ADMIN_USER,
+      adminPassword: env.AUTH_ADMIN_PASSWORD,
     },
     project: {
       dir: path.resolve(env.PROJECT_DIR),

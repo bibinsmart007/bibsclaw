@@ -7,6 +7,9 @@ import { TextToSpeech } from "./voice/tts.js";
 import { TaskScheduler } from "./automation/scheduler.js";
 import { createDashboardServer } from "./web/server.js";
 import { TelegramBot } from "./telegram/bot.js";
+import { Database } from "./database/db.js";
+import { AuthManager } from "./auth/auth.js";
+import { logger } from "./middleware/logger.js";
 
 const BANNER = `
 ${chalk.cyan("  ____  _ _       ____  _             ")}
@@ -29,6 +32,8 @@ async function main() {
   const tts = new TextToSpeech();
   const scheduler = new TaskScheduler();
   const telegramBot = new TelegramBot(agent);
+  const db = new Database();
+  const auth = new AuthManager();
 
   // Initialize scheduler
   await scheduler.init();
@@ -68,7 +73,7 @@ async function main() {
 
   // Start dashboard server
   if (appConfig.web.dashboardEnabled) {
-    const { httpServer } = createDashboardServer(agent, stt, tts, scheduler);
+    const { httpServer } = createDashboardServer(db, auth, agent, stt, tts, scheduler);
     httpServer.listen(appConfig.web.port, "0.0.0.0", () => {
       console.log(
         chalk.green(`  Dashboard: http://0.0.0.0:${appConfig.web.port}`)
