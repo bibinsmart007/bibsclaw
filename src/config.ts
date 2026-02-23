@@ -17,9 +17,16 @@ const envSchema = z.object({
   GEMINI_API_KEY: z.string().default(""),
   GEMINI_MODEL: z.string().default("gemini-2.0-flash"),
 
+  // Ollama (local models)
+  OLLAMA_BASE_URL: z.string().default("http://localhost:11434"),
+  OLLAMA_MODEL: z.string().default("llama3"),
+
   // OpenAI Chat
   OPENAI_CHAT_API_KEY: z.string().default(""),
   OPENAI_CHAT_MODEL: z.string().default("gpt-4o"),
+
+  // Image Generation
+  STABILITY_API_KEY: z.string().default(""),
 
   // Telegram Bot
   TELEGRAM_BOT_TOKEN: z.string().default(""),
@@ -98,6 +105,9 @@ function loadConfig() {
       geminiModel: env.GEMINI_MODEL,
       openaiChatApiKey: env.OPENAI_CHAT_API_KEY,
       openaiModel: env.OPENAI_CHAT_MODEL,
+    ollamaBaseUrl: env.OLLAMA_BASE_URL,
+    ollamaModel: env.OLLAMA_MODEL,
+    stabilityApiKey: env.STABILITY_API_KEY,
     },
     telegram: {
       botToken: env.TELEGRAM_BOT_TOKEN,
