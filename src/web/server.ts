@@ -134,6 +134,15 @@ export function createDashboardServer(
       try {
         const response = await agent.chat(message);
         socket.emit("response", response);
+        // Send TTS audio if enabled
+        if (tts.enabled) {
+          try {
+            const audioBase64 = await tts.synthesizeToBase64(response);
+            socket.emit("tts_audio", audioBase64);
+          } catch (ttsErr) {
+            console.warn("TTS synthesis failed:", ttsErr);
+          }
+        }
       } catch (err) {
         socket.emit("error", String(err));
       }
