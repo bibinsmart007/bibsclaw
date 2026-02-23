@@ -1,4 +1,5 @@
 import { logger } from "../middleware/logger.js";
+// @ts-ignore
 import Database from "better-sqlite3";
 import path from "node:path";
 
