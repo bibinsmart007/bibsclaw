@@ -13,6 +13,14 @@ const envSchema = z.object({
   PERPLEXITY_API_KEY: z.string().default(""),
   PERPLEXITY_MODEL: z.string().default("sonar"),
 
+  // Gemini AI
+  GEMINI_API_KEY: z.string().default(""),
+  GEMINI_MODEL: z.string().default("gemini-2.0-flash"),
+
+  // OpenAI Chat
+  OPENAI_CHAT_API_KEY: z.string().default(""),
+  OPENAI_CHAT_MODEL: z.string().default("gpt-4o"),
+
   // Telegram Bot
   TELEGRAM_BOT_TOKEN: z.string().default(""),
   TELEGRAM_ALLOWED_USERS: z.string().default(""),
@@ -21,11 +29,14 @@ const envSchema = z.object({
   OPENAI_API_KEY: z.string().default(""),
   STT_MODEL: z.string().default("whisper-1"),
   STT_LANGUAGE: z.string().default("en"),
+  STT_LANGUAGES: z.string().default("en"),
 
   // Text-to-Speech
   ELEVENLABS_API_KEY: z.string().default(""),
   ELEVENLABS_VOICE_ID: z.string().default("21m00Tcm4TlvDq8ikWAM"),
   ELEVENLABS_MODEL: z.string().default("eleven_monolingual_v1"),
+
+  TTS_STREAMING: z.string().default("false"),
 
   // Web Dashboard
   PORT: z.coerce.number().default(3200),
