@@ -1,84 +1,76 @@
-// User Preferences - Phase 1
-// Manages user-specific settings and preferences
-
-export interface UserPreference {
+export interface UserPreferences {
   userId: string;
-  key: string;
-  value: unknown;
+  theme: 'light' | 'dark' | 'system';
+  language: string;
+  timezone: string;
+  notifications: { email: boolean; push: boolean; telegram: boolean };
+  defaultModel: string;
+  voiceEnabled: boolean;
+  ttsVoice: string;
+  dashboardLayout: string;
+  autoSave: boolean;
+  createdAt: Date;
   updatedAt: Date;
 }
 
-export interface PreferenceSchema {
-  theme: "light" | "dark" | "system";
-  language: string;
-  timezone: string;
-  notifications: boolean;
-  emailDigest: "daily" | "weekly" | "never";
-  defaultView: "grid" | "list" | "kanban";
-  itemsPerPage: number;
-  autoSave: boolean;
-}
-
-const DEFAULT_PREFERENCES: PreferenceSchema = {
-  theme: "system",
-  language: "en",
-  timezone: "UTC",
-  notifications: true,
-  emailDigest: "weekly",
-  defaultView: "list",
-  itemsPerPage: 25,
+const DEFAULT_PREFERENCES: Omit<UserPreferences, 'userId' | 'createdAt' | 'updatedAt'> = {
+  theme: 'system',
+  language: 'en',
+  timezone: 'UTC',
+  notifications: { email: true, push: true, telegram: false },
+  defaultModel: 'perplexity',
+  voiceEnabled: false,
+  ttsVoice: 'default',
+  dashboardLayout: 'standard',
   autoSave: true,
 };
 
-export class UserPreferencesManager {
-  private preferences: Map<string, Map<string, UserPreference>> = new Map();
+export class UserPreferencesStore {
+  private store: Map<string, UserPreferences> = new Map();
 
-  async getPreference<K extends keyof PreferenceSchema>(userId: string, key: K): Promise<PreferenceSchema[K]> {
-    const userPrefs = this.preferences.get(userId);
-    if (userPrefs && userPrefs.has(key)) {
-      return userPrefs.get(key)!.value as PreferenceSchema[K];
+  async get(userId: string): Promise<UserPreferences> {
+    if (!this.store.has(userId)) {
+      const now = new Date();
+      this.store.set(userId, { ...DEFAULT_PREFERENCES, userId, createdAt: now, updatedAt: now });
     }
-    return DEFAULT_PREFERENCES[key];
+    return this.store.get(userId)!;
   }
 
-  async setPreference<K extends keyof PreferenceSchema>(userId: string, key: K, value: PreferenceSchema[K]): Promise<void> {
-    if (!this.preferences.has(userId)) {
-      this.preferences.set(userId, new Map());
+  async update(userId: string, updates: Partial<Omit<UserPreferences, 'userId' | 'createdAt' | 'updatedAt'>>): Promise<UserPreferences> {
+    const current = await this.get(userId);
+    const updated = { ...current, ...updates, updatedAt: new Date() };
+    if (updates.notifications) {
+      updated.notifications = { ...current.notifications, ...updates.notifications };
     }
-    this.preferences.get(userId)!.set(key, {
-      userId,
-      key,
-      value,
-      updatedAt: new Date(),
-    });
+    this.store.set(userId, updated);
+    return updated;
   }
 
-  async getAllPreferences(userId: string): Promise<PreferenceSchema> {
-    const result = { ...DEFAULT_PREFERENCES };
-    const userPrefs = this.preferences.get(userId);
-    if (userPrefs) {
-      for (const [key, pref] of userPrefs) {
-        (result as Record<string, unknown>)[key] = pref.value;
-      }
-    }
-    return result;
+  async reset(userId: string): Promise<UserPreferences> {
+    const now = new Date();
+    const prefs = { ...DEFAULT_PREFERENCES, userId, createdAt: now, updatedAt: now };
+    this.store.set(userId, prefs);
+    return prefs;
   }
 
-  async resetPreferences(userId: string): Promise<void> {
-    this.preferences.delete(userId);
+  async delete(userId: string): Promise<boolean> {
+    return this.store.delete(userId);
+  }
+
+  async getAll(): Promise<UserPreferences[]> {
+    return Array.from(this.store.values());
   }
 
   async exportPreferences(userId: string): Promise<string> {
-    const prefs = await this.getAllPreferences(userId);
+    const prefs = await this.get(userId);
     return JSON.stringify(prefs, null, 2);
   }
 
-  async importPreferences(userId: string, json: string): Promise<void> {
-    const prefs = JSON.parse(json) as Partial<PreferenceSchema>;
-    for (const [key, value] of Object.entries(prefs)) {
-      if (key in DEFAULT_PREFERENCES) {
-        await this.setPreference(userId, key as keyof PreferenceSchema, value as PreferenceSchema[keyof PreferenceSchema]);
-      }
-    }
+  async importPreferences(userId: string, json: string): Promise<UserPreferences> {
+    const imported = JSON.parse(json) as Partial<UserPreferences>;
+    const { userId: _, createdAt, updatedAt, ...updates } = imported;
+    return this.update(userId, updates);
   }
 }
+
+export const userPreferencesStore = new UserPreferencesStore();

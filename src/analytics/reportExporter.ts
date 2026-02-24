@@ -40,6 +40,7 @@ export class ReportExporter {
     }
     const fp = path.join(this.outputDir, this.genName(config.title, "csv"));
     fs.writeFileSync(fp, lines.join("\n"), "utf-8");
+
     return fp;
   }
 

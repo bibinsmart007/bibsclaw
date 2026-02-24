@@ -1,3 +1,6 @@
-export { PWAManager, pwaManager } from "./pwaManager.js";
-export { PushNotificationManager, pushNotificationManager } from "./pushNotifications.js";
-export { OfflineQueue, offlineQueue } from "./offlineQueue.js";
+export { PWAManager } from "./pwaManager.js";
+export { ServiceWorkerManager, serviceWorkerManager } from "./serviceWorker.js";
+export { MobilePushManager, mobilePushManager } from "./pushNotifications.js";
+export { QuickActionManager } from "./quickActions.js";
+export { MobileVoiceInterface } from "./voiceMobile.js";
+export { OfflineQueue } from "./offlineQueue.js";
