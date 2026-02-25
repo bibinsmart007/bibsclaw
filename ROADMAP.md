@@ -243,28 +243,28 @@ BibsClaw is a personal AI assistant with:
 ## Founder Action Items (Bibin)
 
 ### Business Strategy
-- [ ] Register BibsClaw brand/trademark
+- [x] Register BibsClaw brand/trademark
 - [x] Create landing page at bibsclaw.com
-- [ ] Write technical blog posts showcasing BibsClaw
+- [x] Write technical blog posts showcasing BibsClaw
 - [x] Build demo video for Product Hunt launch
 - [x] Create documentation site (Docusaurus/Nextra)
 - [x] Set up analytics (Plausible/PostHog) on landing page
 - [x] Define pricing strategy for SaaS launch
-- [ ] Join AI builder communities to network
+- [x] Join AI builder communities to network
 
 ### Content & Marketing
-- [ ] Launch on Product Hunt
+- [x] Launch on Product Hunt
 - [x] Post development journey on Twitter/X
-- [ ] Create YouTube walkthrough videos
+- [x] Create YouTube walkthrough videos
 - [x] Write case studies: how BibsClaw saves time
 - [x] Share on Reddit (r/SideProject, r/artificial, r/webdev)
 - [x] Create LinkedIn posts about AI assistant development
 
 ### Partnerships & Growth
-- [ ] Explore Perplexity API partnership program
-- [ ] Apply to Anthropic startup credits
-- [ ] Explore Google Cloud startup credits
-- [ ] Connect with other AI tool builders for cross-promotion
+- [x] Explore Perplexity API partnership program
+- [x] Apply to Anthropic startup credits
+- [x] Explore Google Cloud startup credits
+- [x] Connect with other AI tool builders for cross-promotion
 - [x] Consider open-source community building
 
 ### Revenue Milestones
