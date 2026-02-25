@@ -211,7 +211,7 @@ BibsClaw is a personal AI assistant with:
 - [x] Audit trails and compliance reporting
 
 ### 5.4 AI Agent Marketplace
-- [ ] Pre-built agent templates (DevOps Agent, Marketing Agent, etc.)
+- [x] Pre-built agent templates (DevOps Agent, Marketing Agent, etc.)
 - [x] Custom agent builder (no-code)
 - [x] Agent sharing and collaboration
 - [x] Agent performance benchmarks
