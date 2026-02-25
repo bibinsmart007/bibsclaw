@@ -116,7 +116,45 @@
         .empty-state { text-align: center; padding: 32px 16px; color: var(--text-muted); font-size: 13px; }
         /* Responsive */
         @media (max-width: 768px) { .sidebar { position: fixed; left: -260px; z-index: 100; height: 100vh; } .sidebar.open { left: 0; } .right-panel { display: none; } }
-    </style>
+    
+/* View Panel System */
+.view-panel { display: none; flex-direction: column; flex: 1; min-height: 0; }
+.view-panel.active { display: flex; }
+.panel-page { flex: 1; overflow-y: auto; padding: 24px; }
+.panel-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.stat-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 20px; }
+.stat-card h3 { font-size: 13px; color: rgba(255,255,255,0.5); margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 0.5px; }
+.stat-card .stat-value { font-size: 32px; font-weight: 700; color: #fff; }
+.stat-card .stat-sub { font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 4px; }
+.section-title { font-size: 18px; font-weight: 600; color: #fff; margin: 0 0 16px 0; }
+.info-table { width: 100%; border-collapse: collapse; }
+.info-table th, .info-table td { text-align: left; padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.07); font-size: 13px; }
+.info-table th { color: rgba(255,255,255,0.4); font-weight: 500; }
+.info-table td { color: rgba(255,255,255,0.85); }
+.status-badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+.status-ok { background: rgba(34,197,94,0.2); color: #4ade80; }
+.status-warn { background: rgba(234,179,8,0.2); color: #facc15; }
+.status-err { background: rgba(239,68,68,0.2); color: #f87171; }
+.file-list { list-style: none; padding: 0; margin: 0; }
+.file-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.05); color: rgba(255,255,255,0.8); font-size: 13px; cursor: pointer; }
+.file-item:hover { background: rgba(255,255,255,0.05); }
+.file-icon { font-size: 18px; color: rgba(255,255,255,0.4); }
+.terminal-output { background: #0d1117; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 16px; font-family: monospace; font-size: 13px; color: #e6edf3; min-height: 300px; max-height: 400px; overflow-y: auto; white-space: pre-wrap; }
+.form-group { margin-bottom: 16px; }
+.form-label { display: block; font-size: 13px; color: rgba(255,255,255,0.6); margin-bottom: 6px; }
+.form-input { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px 14px; color: #fff; font-size: 14px; outline: none; box-sizing: border-box; }
+.form-input:focus { border-color: rgba(139,92,246,0.5); }
+.btn-primary { background: linear-gradient(135deg,#7c3aed,#4f46e5); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 14px; cursor: pointer; }
+.btn-primary:hover { opacity: 0.9; }
+.health-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.health-item { background: rgba(255,255,255,0.04); border-radius: 10px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; }
+.health-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.health-dot.green { background: #4ade80; box-shadow: 0 0 6px #4ade80; }
+.health-dot.yellow { background: #facc15; box-shadow: 0 0 6px #facc15; }
+.health-dot.red { background: #f87171; box-shadow: 0 0 6px #f87171; }
+.health-name { font-size: 13px; color: rgba(255,255,255,0.8); }
+.health-status { font-size: 11px; color: rgba(255,255,255,0.4); }
+</style>
 </head>
 <body>
     <!-- Sidebar -->
@@ -156,6 +194,7 @@
         </header>
 
         <!-- Chat Area -->
+        <div id="view-chat" class="view-panel active">
         <div class="chat-area">
             <div class="messages" id="messages">
                 <div class="welcome-screen" id="welcomeScreen">
@@ -186,6 +225,109 @@
         </div>
     </div>
 
+        </div><!-- end view-chat -->
+        <div id="view-analytics" class="view-panel">
+          <div class="panel-page">
+            <p class="section-title">Analytics &amp; Usage</p>
+            <div class="panel-grid">
+              <div class="stat-card"><h3>Total Chats</h3><div class="stat-value" id="stat-chats">--</div><div class="stat-sub">All time</div></div>
+              <div class="stat-card"><h3>API Provider</h3><div class="stat-value" id="stat-provider" style="font-size:20px">Perplexity</div><div class="stat-sub">Active model</div></div>
+              <div class="stat-card"><h3>Uptime</h3><div class="stat-value" id="stat-uptime">--</div><div class="stat-sub">Server uptime</div></div>
+              <div class="stat-card"><h3>Tasks Run</h3><div class="stat-value" id="stat-tasks">--</div><div class="stat-sub">Scheduled &amp; manual</div></div>
+            </div>
+            <p class="section-title">API Health</p>
+            <table class="info-table">
+              <thead><tr><th>Service</th><th>Status</th><th>Provider</th></tr></thead>
+              <tbody id="api-table">
+                <tr><td>Chat AI</td><td><span class="status-badge status-ok">Online</span></td><td>Perplexity</td></tr>
+                <tr><td>Voice STT</td><td><span class="status-badge status-ok">Online</span></td><td>Web Speech API</td></tr>
+                <tr><td>Voice TTS</td><td><span class="status-badge status-ok" id="tts-status">Online</span></td><td>ElevenLabs</td></tr>
+                <tr><td>Telegram Bot</td><td><span class="status-badge status-ok" id="tg-status">Online</span></td><td>Telegram API</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div id="view-files" class="view-panel">
+          <div class="panel-page">
+            <p class="section-title">File Explorer</p>
+            <ul class="file-list" id="files-list">
+              <li class="file-item"><span class="file-icon material-icons-round" style="font-size:18px">description</span><span>Loading...</span></li>
+            </ul>
+          </div>
+        </div>
+        <div id="view-terminal" class="view-panel">
+          <div class="panel-page">
+            <p class="section-title">System Terminal</p>
+            <div class="terminal-output" id="term-out">BibsClaw Terminal - Read Only
+Connected to: bibsclaw-production.up.railway.app
+
+$ Type a command in the chat and results appear here
+</div>
+            <div style="margin-top:12px;display:flex;gap:8px">
+              <input class="form-input" id="term-input" placeholder="Run: ls, pwd, git status..." style="flex:1" />
+              <button class="btn-primary" onclick="runTermCmd()">Run</button>
+            </div>
+          </div>
+        </div>
+        <div id="view-health" class="view-panel">
+          <div class="panel-page">
+            <p class="section-title">System Health</p>
+            <div class="health-grid" id="health-grid">
+              <div class="health-item"><div class="health-dot green"></div><div><div class="health-name">API Server</div><div class="health-status" id="hs-api">Checking...</div></div></div>
+              <div class="health-item"><div class="health-dot green"></div><div><div class="health-name">Socket.IO</div><div class="health-status" id="hs-socket">Connected</div></div></div>
+              <div class="health-item"><div class="health-dot" id="hd-perplexity"></div><div><div class="health-name">Perplexity AI</div><div class="health-status" id="hs-perplexity">Checking...</div></div></div>
+              <div class="health-item"><div class="health-dot" id="hd-telegram"></div><div><div class="health-name">Telegram Bot</div><div class="health-status" id="hs-telegram">Checking...</div></div></div>
+              <div class="health-item"><div class="health-dot green"></div><div><div class="health-name">Voice STT</div><div class="health-status">Browser API</div></div></div>
+              <div class="health-item"><div class="health-dot" id="hd-elevenlabs"></div><div><div class="health-name">ElevenLabs TTS</div><div class="health-status" id="hs-elevenlabs">Checking...</div></div></div>
+            </div>
+            <p class="section-title" style="margin-top:24px">Version Info</p>
+            <table class="info-table">
+              <tbody>
+                <tr><td>Version</td><td id="hv-version">v2.0.0</td></tr>
+                <tr><td>Environment</td><td>Production (Railway)</td></tr>
+                <tr><td>Node.js</td><td id="hv-node">--</td></tr>
+                <tr><td>Uptime</td><td id="hv-uptime">--</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div id="view-settings" class="view-panel">
+          <div class="panel-page">
+            <p class="section-title">Settings</p>
+            <div class="form-group"><label class="form-label">AI Provider</label>
+              <select class="form-input" id="set-provider">
+                <option value="perplexity">Perplexity AI (Active)</option>
+                <option value="claude">Anthropic Claude</option>
+              </select>
+            </div>
+            <div class="form-group"><label class="form-label">TTS Voice</label>
+              <select class="form-input" id="set-voice">
+                <option value="rachel">Rachel (ElevenLabs)</option>
+                <option value="adam">Adam (ElevenLabs)</option>
+                <option value="browser">Browser TTS (Free)</option>
+              </select>
+            </div>
+            <div class="form-group"><label class="form-label">Theme</label>
+              <select class="form-input" id="set-theme">
+                <option value="dark">Dark (Default)</option>
+                <option value="darker">Darker</option>
+              </select>
+            </div>
+            <div class="form-group"><label class="form-label">Dashboard Title</label>
+              <input class="form-input" id="set-title" value="BibsClaw AI Assistant" />
+            </div>
+            <button class="btn-primary" onclick="saveSettings()">Save Settings</button>
+            <p style="margin-top:24px" class="section-title">About BibsClaw</p>
+            <table class="info-table">
+              <tbody>
+                <tr><td>Version</td><td>v2.0.0</td></tr>
+                <tr><td>Built by</td><td>Bibin (Abu Dhabi, UAE)</td></tr>
+                <tr><td>Deployed on</td><td>Railway</td></tr>
+                <tr><td>Repository</td><td><a href="https://github.com/bibinsmart007/bibsclaw" target="_blank" style="color:#a78bfa">github.com/bibinsmart007/bibsclaw</a></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
     <!-- Right Panel -->
     <aside class="right-panel">
         <div class="panel-tabs">
@@ -374,6 +516,142 @@
             $('toolPanel').style.display = tab.dataset.panel==='tools'?'block':'none';
         });
     });
-    </script>
+    
+// ======= VIEW PANEL NAVIGATION =======
+function showView(viewName) {
+  // Hide all view panels
+  document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active'));
+  // Show target panel
+  const target = document.getElementById('view-' + viewName);
+  if (target) target.classList.add('active');
+  // Update nav item active state
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const navItem = document.querySelector('.nav-item[data-view="' + viewName + '"]');
+  if (navItem) navItem.classList.add('active');
+  // Load data for specific panels
+  if (viewName === 'health') loadHealthData();
+  if (viewName === 'analytics') loadAnalyticsData();
+  if (viewName === 'files') loadFilesData();
+}
+
+// Set data-view on nav items by text content
+function initNavItems() {
+  document.querySelectorAll('.nav-item').forEach(item => {
+    const label = item.querySelector('.nav-label');
+    if (!label) return;
+    const text = label.textContent.trim().toLowerCase();
+    item.setAttribute('data-view', text);
+    item.style.cursor = 'pointer';
+    item.addEventListener('click', function(e) {
+      e.preventDefault();
+      showView(text);
+    });
+  });
+}
+
+// Load health data from API
+async function loadHealthData() {
+  try {
+    const r = await fetch('/api/health');
+    const d = await r.json();
+    const isOk = d.status === 'ok';
+    document.getElementById('hs-api').textContent = isOk ? 'Online' : 'Error';
+    document.getElementById('hv-version').textContent = d.version || 'v2.0.0';
+    document.getElementById('hv-uptime').textContent = d.uptime ? Math.floor(d.uptime/60) + 'm' : '--';
+    // Perplexity
+    const pxOk = d.providers && d.providers.includes('perplexity');
+    document.getElementById('hs-perplexity').textContent = pxOk ? 'Connected' : 'Not configured';
+    document.getElementById('hd-perplexity').className = 'health-dot ' + (pxOk ? 'green' : 'yellow');
+    // Telegram
+    document.getElementById('hs-telegram').textContent = d.telegram ? 'Connected' : 'Not configured';
+    document.getElementById('hd-telegram').className = 'health-dot ' + (d.telegram ? 'green' : 'yellow');
+    // ElevenLabs
+    document.getElementById('hs-elevenlabs').textContent = 'Not configured';
+    document.getElementById('hd-elevenlabs').className = 'health-dot yellow';
+  } catch(err) {
+    document.getElementById('hs-api').textContent = 'Error: ' + err.message;
+  }
+}
+
+// Load analytics data
+async function loadAnalyticsData() {
+  try {
+    const r = await fetch('/api/health');
+    const d = await r.json();
+    if (document.getElementById('stat-provider')) {
+      document.getElementById('stat-provider').textContent = d.provider || 'Perplexity';
+    }
+    if (d.uptime && document.getElementById('stat-uptime')) {
+      const mins = Math.floor(d.uptime / 60);
+      const hrs = Math.floor(mins / 60);
+      document.getElementById('stat-uptime').textContent = hrs > 0 ? hrs + 'h ' + (mins%60) + 'm' : mins + 'm';
+    }
+    // Message count from localStorage
+    const msgCount = parseInt(localStorage.getItem('bibsclaw_msg_count') || '0');
+    if (document.getElementById('stat-chats')) document.getElementById('stat-chats').textContent = msgCount;
+  } catch(e) {}
+}
+
+// Load files
+async function loadFilesData() {
+  const list = document.getElementById('files-list');
+  if (!list) return;
+  try {
+    const r = await fetch('/api/agent/files');
+    if (!r.ok) throw new Error('Not available');
+    const d = await r.json();
+    list.innerHTML = (d.files || []).map(f =>
+      `<li class="file-item"><span class="material-icons-round file-icon">description</span><span>${f}</span></li>`
+    ).join('');
+  } catch(e) {
+    list.innerHTML = '<li class="file-item"><span style="color:rgba(255,255,255,0.4)">Files API not available in production</span></li>';
+  }
+}
+
+// Terminal command runner
+async function runTermCmd() {
+  const input = document.getElementById('term-input');
+  const out = document.getElementById('term-out');
+  if (!input || !out) return;
+  const cmd = input.value.trim();
+  if (!cmd) return;
+  out.textContent += '
+$ ' + cmd + '
+';
+  input.value = '';
+  try {
+    const r = await fetch('/api/agent/exec', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({command: cmd}) });
+    const d = await r.json();
+    out.textContent += (d.output || d.error || 'Done') + '
+';
+  } catch(e) {
+    out.textContent += 'Error: ' + e.message + '
+';
+  }
+  out.scrollTop = out.scrollHeight;
+}
+
+function saveSettings() {
+  const provider = document.getElementById('set-provider')?.value;
+  const voice = document.getElementById('set-voice')?.value;
+  localStorage.setItem('bibsclaw_provider', provider || 'perplexity');
+  localStorage.setItem('bibsclaw_voice', voice || 'rachel');
+  alert('Settings saved!');
+}
+
+// Track message count for analytics
+function trackMessage() {
+  const count = parseInt(localStorage.getItem('bibsclaw_msg_count') || '0') + 1;
+  localStorage.setItem('bibsclaw_msg_count', count);
+}
+
+// Initialize navigation on DOM ready
+document.addEventListener('DOMContentLoaded', function() {
+  initNavItems();
+  // Default to chat view active
+  const chatNav = document.querySelector('.nav-item');
+  if (chatNav) chatNav.setAttribute('data-view', 'chat');
+});
+</script>
 </body>
 </html>
