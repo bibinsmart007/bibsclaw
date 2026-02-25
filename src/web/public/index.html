@@ -249,29 +249,87 @@
         });
     });
 
-    // Voice
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    let recognition = null, isListening = false;
-    if (SR) {
-        recognition = new SR();
-        recognition.continuous = false; recognition.interimResults = true; recognition.lang = 'en-US';
-        recognition.onstart = () => { isListening = true; voiceBtn.classList.add('recording'); input.placeholder = 'Listening...'; };
-        recognition.onresult = (e) => {
-            let t = ''; for (let i = e.resultIndex; i < e.results.length; i++) t += e.results[i][0].transcript;
-            input.value = t;
-            if (e.results[e.results.length-1].isFinal) sendMessage();
-        };
-        recognition.onerror = (e) => { isListening = false; voiceBtn.classList.remove('recording'); input.placeholder = 'Ask BibsClaw anything...';
-            if (e.error === 'not-allowed') addMessage('system','Microphone access denied.');
-            else if (e.error === 'no-speech') addMessage('system','No speech detected.');
-            else if (e.error !== 'aborted') addMessage('system','Voice error: '+e.error);
-        };
-        recognition.onend = () => { isListening = false; voiceBtn.classList.remove('recording'); input.placeholder = 'Ask BibsClaw anything...'; };
-    }
-    voiceBtn.addEventListener('click', () => {
-        if (!SR) { addMessage('system','Speech recognition not supported. Use Chrome.'); return; }
-        isListening ? recognition.stop() : recognition.start();
-    });
+        // Voice - Enhanced with proper mic permission and auto-restart
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition = null, isListening = false;
+        let voiceTimeout = null;
+        if (SR) {
+            recognition = new SR();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+            recognition.maxAlternatives = 1;
+            recognition.onstart = () => {
+                isListening = true;
+                voiceBtn.classList.add('recording');
+                input.placeholder = 'Listening... Speak now';
+                console.log('[Voice] Started');
+            };
+            recognition.onresult = (e) => {
+                let interim = '';
+                let finalT = '';
+                for (let i = e.resultIndex; i < e.results.length; i++) {
+                    const t = e.results[i][0].transcript;
+                    if (e.results[i].isFinal) { finalT += t; }
+                    else { interim += t; }
+                }
+                if (finalT) {
+                    input.value = finalT;
+                    clearTimeout(voiceTimeout);
+                    voiceTimeout = setTimeout(() => {
+                        if (input.value.trim()) { stopVoice(); sendMessage(); }
+                    }, 800);
+                } else if (interim) {
+                    input.value = interim;
+                }
+            };
+            recognition.onerror = (e) => {
+                console.log('[Voice] Error:', e.error);
+                if (e.error === 'not-allowed' || e.error === 'permission-denied') {
+                    stopVoice();
+                    addMessage('system','Microphone access denied. Allow mic in browser settings.');
+                } else if (e.error === 'no-speech') {
+                    input.placeholder = 'No speech heard. Try again...';
+                } else if (e.error === 'audio-capture') {
+                    stopVoice();
+                    addMessage('system','No microphone found. Connect a mic and retry.');
+                } else if (e.error === 'network') {
+                    stopVoice();
+                    addMessage('system','Network error in voice recognition.');
+                } else if (e.error !== 'aborted') {
+                    addMessage('system','Voice error: ' + e.error);
+                }
+            };
+            recognition.onend = () => {
+                console.log('[Voice] Ended, listening:', isListening);
+                if (isListening) {
+                    try { recognition.start(); }
+                    catch(e) { console.log('[Voice] Restart failed:', e); stopVoice(); }
+                }
+            };
+        }
+        function stopVoice() {
+            isListening = false;
+            voiceBtn.classList.remove('recording');
+            input.placeholder = 'Ask BibsClaw anything...';
+            clearTimeout(voiceTimeout);
+            try { if(recognition) recognition.stop(); } catch(e) {}
+        }
+        function startVoice() {
+            if (!SR) { addMessage('system','Speech recognition not supported. Use Chrome/Edge.'); return; }
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(s => {
+                    s.getTracks().forEach(t => t.stop());
+                    isListening = true;
+                    input.value = '';
+                    try { recognition.start(); }
+                    catch(e) { recognition.stop(); setTimeout(() => recognition.start(), 200); }
+                })
+                .catch(() => addMessage('system','Mic access denied. Allow mic permission and retry.'));
+        }
+        voiceBtn.addEventListener('click', () => {
+            isListening ? stopVoice() : startVoice();
+        });
 
     // Socket events
     socket.on('response', t => { addMessage('assistant', t); sendBtn.disabled = false; thinking.classList.remove('visible'); });
