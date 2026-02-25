@@ -21,6 +21,9 @@ COPY --from=deps /prod_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/public ./public
 COPY package.json ./
+RUN mkdir -p /app/.bibsclaw && chown -R bibsclaw:bibsclaw /app/.bibsclaw
+COPY --from=builder /app/src/web/public ./src/web/public
 USER bibsclaw
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 CMD wget --no-verbose --tries=1 --spider http://localhost:8080/api/health || exit 1
 EXPOSE 8080
 CMD ["node", "dist/index.js"]

@@ -137,3 +137,23 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# BibsClaw Security
+.bibsclaw/
+*.sqlite
+*.db
+*.pem
+*.key
+*.cert
+*.p12
+*.pfx
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+docker-compose.override.yml
+fix_*.cjs
+phase*_implement.cjs
+update_roadmap.cjs
