@@ -247,6 +247,17 @@
             </table>
           </div>
         </div>
+        <div id="view-tasks" class="view-panel">
+            <div class="panel-page">
+                <h2 class="section-title">Scheduled Tasks</h2>
+                <div class="panel-grid">
+                    <div class="stat-card"><h3>Active Tasks</h3><div class="stat-value" id="stat-tasks-active">--</div></div>
+                    <div class="stat-card"><h3>Total Runs</h3><div class="stat-value" id="stat-tasks-runs">--</div></div>
+                </div>
+                <h3 class="section-title">Task List</h3>
+                <div id="tasks-panel-list"><div class="empty-state">No tasks scheduled yet.</div></div>
+            </div>
+        </div>
         <div id="view-files" class="view-panel">
           <div class="panel-page">
             <p class="section-title">File Explorer</p>
@@ -532,6 +543,7 @@ function showView(viewName) {
   if (viewName === 'health') loadHealthData();
   if (viewName === 'analytics') loadAnalyticsData();
   if (viewName === 'files') loadFilesData();
+        if (viewName === 'tasks') loadTasksData();
 }
 
 // Set data-view on nav items by text content
