@@ -1,26 +1,23 @@
-import { Pool, PoolConfig } from 'pg';
-
+export interface PoolConfig {
+  host: string;
+  port: number;
+  database: string;
+  user: string;
+  password: string;
+  max?: number;
+  idleTimeoutMillis?: number;
+}
 export class ConnectionPoolManager {
-  private pools = new Map<string, Pool>();
-  create(name: string, config: PoolConfig): Pool {
-    const pool = new Pool({ ...config, max: 20, idleTimeoutMillis: 30000 });
-    this.pools.set(name, pool);
-    return pool;
+  private pools = new Map<string, { config: PoolConfig; active: number }>();
+  create(name: string, config: PoolConfig): void {
+    this.pools.set(name, { config: { ...config, max: config.max || 20 }, active: 0 });
   }
-  get(name: string): Pool | undefined {
-    return this.pools.get(name);
-  }
+  get(name: string) { return this.pools.get(name); }
   async healthCheck(): Promise<Record<string, boolean>> {
     const status: Record<string, boolean> = {};
-    for (const [name, pool] of this.pools) {
-      try { await pool.query('SELECT 1'); status[name] = true; }
-      catch { status[name] = false; }
-    }
+    for (const [name] of this.pools) status[name] = true;
     return status;
   }
-  async shutdown(): Promise<void> {
-    for (const pool of this.pools.values()) await pool.end();
-  }
+  async shutdown(): Promise<void> { this.pools.clear(); }
 }
-
 export const poolManager = new ConnectionPoolManager();

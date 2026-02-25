@@ -1,25 +1,16 @@
-import { VM } from 'vm2';
-
+import { createContext, runInNewContext } from 'vm';
 export interface SandboxOptions {
   timeout?: number;
   memoryLimit?: number;
-  allowedModules?: string[];
 }
-
 export class PluginSandbox {
-  private vm: VM;
+  private timeout: number;
   constructor(opts: SandboxOptions = {}) {
-    this.vm = new VM({
-      timeout: opts.timeout || 5000,
-      sandbox: { console: { log: () => {} } },
-    });
+    this.timeout = opts.timeout || 5000;
   }
-  async execute(code: string, context: Record<string, unknown> = {}): Promise<unknown> {
-    Object.entries(context).forEach(([k, v]) => {
-      this.vm.setGlobal(k, v);
-    });
-    return this.vm.run(code);
+  async execute(code: string, ctx: Record<string, unknown> = {}): Promise<unknown> {
+    const sandbox = createContext({ ...ctx, console: { log: () => {} } });
+    return runInNewContext(code, sandbox, { timeout: this.timeout });
   }
 }
-
 export const createSandbox = (opts?: SandboxOptions) => new PluginSandbox(opts);

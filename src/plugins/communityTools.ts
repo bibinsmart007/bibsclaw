@@ -1,5 +1,3 @@
-import { container } from '../di/container';
-
 export interface CommunityPlugin {
   name: string;
   version: string;
@@ -7,8 +5,7 @@ export interface CommunityPlugin {
   description: string;
   execute: (input: unknown) => Promise<unknown>;
 }
-
-class CommunityToolRegistry {
+export class CommunityToolRegistry {
   private plugins = new Map<string, CommunityPlugin>();
   register(plugin: CommunityPlugin): void {
     this.plugins.set(plugin.name, plugin);
@@ -19,6 +16,8 @@ class CommunityToolRegistry {
   list(): CommunityPlugin[] {
     return Array.from(this.plugins.values());
   }
+  remove(name: string): boolean {
+    return this.plugins.delete(name);
+  }
 }
-
 export const communityTools = new CommunityToolRegistry();

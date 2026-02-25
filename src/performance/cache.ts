@@ -1,25 +1,24 @@
-import { createClient } from 'redis';
-
 export class CacheService {
-  private client: ReturnType<typeof createClient> | null = null;
-  async connect(url: string = 'redis://localhost:6379'): Promise<void> {
-    this.client = createClient({ url });
-    await this.client.connect();
-  }
+  private store = new Map<string, { value: string; expires: number }>();
   async get<T>(key: string): Promise<T | null> {
-    if (!this.client) return null;
-    const val = await this.client.get(key);
-    return val ? JSON.parse(val) : null;
+    const entry = this.store.get(key);
+    if (!entry || Date.now() > entry.expires) {
+      this.store.delete(key); return null;
+    }
+    return JSON.parse(entry.value);
   }
   async set(key: string, value: unknown, ttl: number = 300): Promise<void> {
-    if (!this.client) return;
-    await this.client.setEx(key, ttl, JSON.stringify(value));
+    this.store.set(key, {
+      value: JSON.stringify(value),
+      expires: Date.now() + ttl * 1000,
+    });
   }
   async invalidate(pattern: string): Promise<void> {
-    if (!this.client) return;
-    const keys = await this.client.keys(pattern);
-    if (keys.length) await this.client.del(keys);
+    const regex = new RegExp(pattern.replace(/\*/g, '.*'));
+    for (const key of this.store.keys()) {
+      if (regex.test(key)) this.store.delete(key);
+    }
   }
+  async clear(): Promise<void> { this.store.clear(); }
 }
-
 export const cache = new CacheService();
