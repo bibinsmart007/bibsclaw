@@ -70,7 +70,7 @@ const envSchema = z.object({
 
   // Logging
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
-  LOG_FILE: z.string().default("bibsclaw.log"),
+  LOG_FILE: z.string().default("/tmp/bibsclaw.log"),
 });
 
 function loadConfig() {
