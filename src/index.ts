@@ -205,6 +205,13 @@ async function main() {
   }
 }
 
+
+// Catch unhandled promise rejections (e.g. from Telegram bot polling)
+process.on("unhandledRejection", (reason: any) => {
+  console.error(chalk.red("Unhandled rejection:"), reason?.message || reason);
+  // Don't exit - let the dashboard keep running
+});
+
 main().catch((err) => {
   console.error(chalk.red("Fatal error:"), err);
   process.exit(1);
