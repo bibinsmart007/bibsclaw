@@ -3,262 +3,319 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BibsClaw Dashboard</title>
+    <title>BibsClaw AI Assistant</title>
     <script src="/socket.io/socket.io.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
     <style>
+        :root {
+            --bg-primary: #0a0e17;
+            --bg-secondary: #111827;
+            --bg-tertiary: #1a2332;
+            --bg-card: rgba(17, 24, 39, 0.8);
+            --border: rgba(99, 102, 241, 0.15);
+            --border-active: rgba(99, 102, 241, 0.4);
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent: #6366f1;
+            --accent-glow: rgba(99, 102, 241, 0.3);
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --user-msg: linear-gradient(135deg, #6366f1, #8b5cf6);
+            --assistant-msg: rgba(30, 41, 59, 0.8);
+        }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0d1117; color: #c9d1d9; height: 100vh; display: flex; flex-direction: column; }
-        header { background: #161b22; border-bottom: 1px solid #30363d; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
-        header h1 { font-size: 20px; color: #58a6ff; }
-        header .status { display: flex; gap: 12px; font-size: 13px; align-items: center; }
-        .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; }
-        .status-dot.active { background: #3fb950; }
-        .status-dot.inactive { background: #f85149; }
-        .provider-badge { background: #1f6feb; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
-        main { flex: 1; display: flex; overflow: hidden; }
-        .chat-panel { flex: 1; display: flex; flex-direction: column; }
-        .sidebar { width: 300px; background: #161b22; border-left: 1px solid #30363d; padding: 16px; overflow-y: auto; }
-        .sidebar h3 { color: #8b949e; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
-        .messages { flex: 1; overflow-y: auto; padding: 16px 24px; }
-        .message { margin-bottom: 16px; padding: 12px 16px; border-radius: 8px; max-width: 85%; white-space: pre-wrap; word-wrap: break-word; line-height: 1.5; font-size: 14px; }
-        .message.user { background: #1f6feb; color: #fff; margin-left: auto; }
-        .message.assistant { background: #21262d; border: 1px solid #30363d; }
-        .message.tool { background: #0d1117; border: 1px solid #30363d; font-family: monospace; font-size: 12px; color: #8b949e; }
-        .message.system { background: #0d1117; color: #8b949e; text-align: center; font-size: 13px; border: 1px dashed #30363d; }
-        .thinking { color: #8b949e; font-style: italic; padding: 8px 24px; font-size: 13px; }
-        .input-area { padding: 16px 24px; background: #161b22; border-top: 1px solid #30363d; display: flex; gap: 8px; }
-        .input-area input { flex: 1; background: #0d1117; border: 1px solid #30363d; color: #c9d1d9; padding: 10px 16px; border-radius: 6px; font-size: 14px; outline: none; }
-        .input-area input:focus { border-color: #58a6ff; }
-        .input-area button { border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; }
-        .btn-send { background: #238636; color: #fff; }
-        .btn-send:hover { background: #2ea043; }
-        .btn-send:disabled { background: #21262d; cursor: not-allowed; }
-        .btn-voice { background: #1f6feb; color: #fff; padding: 10px 14px; }
-        .btn-voice:hover { background: #388bfd; }
-        .btn-voice.recording { background: #f85149; animation: pulse 1s infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-        .btn-clear { background: #21262d; color: #8b949e; padding: 10px 14px; }
-        .btn-clear:hover { background: #30363d; }
-        .task-item { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 10px; margin-bottom: 8px; font-size: 13px; }
-        .task-item .name { color: #58a6ff; font-weight: 600; }
-        .task-item .meta { color: #8b949e; font-size: 11px; margin-top: 4px; }
-        .welcome { text-align: center; padding: 40px; color: #8b949e; }
-        .welcome h2 { color: #58a6ff; margin-bottom: 8px; font-size: 24px; }
-        .welcome p { font-size: 14px; line-height: 1.6; }
+        body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg-primary); color: var(--text-primary); height: 100vh; display: flex; overflow: hidden; }
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--border-active); }
+        /* Sidebar */
+        .sidebar { width: 260px; background: var(--bg-secondary); border-right: 1px solid var(--border); display: flex; flex-direction: column; transition: width 0.3s ease; flex-shrink: 0; }
+        .sidebar.collapsed { width: 64px; }
+        .sidebar-header { padding: 20px 16px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border); }
+        .logo { width: 36px; height: 36px; background: var(--user-msg); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; flex-shrink: 0; }
+        .sidebar-header h1 { font-size: 18px; font-weight: 700; background: linear-gradient(135deg, #6366f1, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; white-space: nowrap; }
+        .sidebar.collapsed .sidebar-header h1, .sidebar.collapsed .nav-label, .sidebar.collapsed .sidebar-footer span { display: none; }
+        .nav { flex: 1; padding: 12px 8px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
+        .nav-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; cursor: pointer; color: var(--text-secondary); transition: all 0.2s; font-size: 14px; text-decoration: none; white-space: nowrap; }
+        .nav-item:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+        .nav-item.active { background: rgba(99, 102, 241, 0.12); color: var(--accent); }
+        .nav-item .material-icons-round { font-size: 20px; flex-shrink: 0; }
+        .sidebar-footer { padding: 12px 8px; border-top: 1px solid var(--border); }
+        /* Main Content */
+        .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+        .topbar { height: 56px; background: var(--bg-secondary); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; flex-shrink: 0; }
+        .topbar-left { display: flex; align-items: center; gap: 12px; }
+        .topbar-right { display: flex; align-items: center; gap: 8px; }
+        .status-pill { display: flex; align-items: center; gap: 6px; padding: 4px 12px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 20px; font-size: 12px; font-weight: 500; }
+        .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); }
+        .status-dot.offline { background: var(--danger); }
+        .provider-badge { padding: 4px 10px; background: var(--user-msg); border-radius: 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; }
+        .icon-btn { width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+        .icon-btn:hover { background: var(--bg-tertiary); color: var(--text-primary); border-color: var(--border-active); }
+        /* Chat Area */
+        .chat-area { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+        .messages { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+        .welcome-screen { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 40px; text-align: center; }
+        .welcome-icon { width: 72px; height: 72px; background: var(--user-msg); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 36px; box-shadow: 0 8px 32px var(--accent-glow); }
+        .welcome-screen h2 { font-size: 28px; font-weight: 700; background: linear-gradient(135deg, #f1f5f9, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .welcome-screen p { color: var(--text-secondary); font-size: 15px; line-height: 1.6; max-width: 440px; }
+        .quick-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 8px; }
+        .quick-action { padding: 8px 16px; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 20px; color: var(--text-secondary); font-size: 13px; cursor: pointer; transition: all 0.2s; }
+        .quick-action:hover { border-color: var(--accent); color: var(--accent); background: rgba(99,102,241,0.08); }
+        /* Messages */
+        .msg { max-width: 75%; animation: msgIn 0.3s ease; }
+        .msg.user { align-self: flex-end; }
+        .msg.assistant { align-self: flex-start; }
+        .msg-bubble { padding: 12px 16px; border-radius: 16px; font-size: 14px; line-height: 1.6; white-space: pre-wrap; word-wrap: break-word; }
+        .msg.user .msg-bubble { background: var(--user-msg); color: white; border-bottom-right-radius: 4px; }
+        .msg.assistant .msg-bubble { background: var(--assistant-msg); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
+        .msg.tool .msg-bubble { background: rgba(99,102,241,0.06); border: 1px solid var(--border); font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-muted); border-radius: 8px; }
+        .msg.system .msg-bubble { background: var(--bg-tertiary); border: 1px dashed var(--border); color: var(--text-muted); text-align: center; font-size: 13px; border-radius: 8px; max-width: 100%; }
+        .msg-time { font-size: 11px; color: var(--text-muted); margin-top: 4px; padding: 0 4px; }
+        .msg.user .msg-time { text-align: right; }
+        @keyframes msgIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        /* Thinking */
+        .thinking { display: none; padding: 8px 24px; color: var(--accent); font-size: 13px; align-items: center; gap: 8px; }
+        .thinking.visible { display: flex; }
+        .dot-pulse { display: flex; gap: 4px; }
+        .dot-pulse span { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; animation: dotPulse 1.4s infinite; }
+        .dot-pulse span:nth-child(2) { animation-delay: 0.2s; }
+        .dot-pulse span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes dotPulse { 0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); } 40% { opacity: 1; transform: scale(1); } }
+        /* Input Area */
+        .input-area { padding: 16px 24px; background: var(--bg-secondary); border-top: 1px solid var(--border); }
+        .input-wrapper { display: flex; align-items: center; gap: 8px; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 12px; padding: 4px 4px 4px 16px; transition: border-color 0.2s; }
+        .input-wrapper:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+        .input-wrapper input { flex: 1; background: none; border: none; color: var(--text-primary); font-size: 14px; outline: none; font-family: inherit; }
+        .input-wrapper input::placeholder { color: var(--text-muted); }
+        .btn-voice { width: 36px; height: 36px; border-radius: 8px; border: none; background: transparent; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+        .btn-voice:hover { color: var(--accent); background: rgba(99,102,241,0.1); }
+        .btn-voice.recording { color: var(--danger); background: rgba(239,68,68,0.1); animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
+        .btn-send { height: 36px; padding: 0 20px; border-radius: 8px; border: none; background: var(--user-msg); color: white; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s; }
+        .btn-send:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-send:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        /* Right Panel */
+        .right-panel { width: 280px; background: var(--bg-secondary); border-left: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; }
+        .panel-header { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
+        .panel-tabs { display: flex; gap: 0; }
+        .panel-tab { flex: 1; padding: 8px; text-align: center; font-size: 12px; font-weight: 500; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; }
+        .panel-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+        .panel-content { flex: 1; overflow-y: auto; padding: 12px; }
+        .task-card { background: var(--bg-primary); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
+        .task-card .task-name { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+        .task-card .task-meta { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+        .tool-entry { padding: 6px 8px; font-size: 12px; color: var(--text-muted); border-left: 2px solid var(--border); margin-bottom: 6px; margin-left: 4px; }
+        .tool-entry.success { border-left-color: var(--success); }
+        .tool-entry.fail { border-left-color: var(--danger); }
+        .empty-state { text-align: center; padding: 32px 16px; color: var(--text-muted); font-size: 13px; }
+        /* Responsive */
+        @media (max-width: 768px) { .sidebar { position: fixed; left: -260px; z-index: 100; height: 100vh; } .sidebar.open { left: 0; } .right-panel { display: none; } }
     </style>
 </head>
 <body>
-    <header>
-        <h1>BibsClaw</h1>
-        <div class="status">
-            <span class="provider-badge" id="providerBadge">--</span>
-            <span class="status-dot inactive" id="statusDot"></span>
-            <span id="statusText">Connecting...</span>
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">BC</div>
+            <h1>BibsClaw</h1>
         </div>
-    </header>
-    <main>
-        <div class="chat-panel">
+        <nav class="nav">
+            <a class="nav-item active" data-view="chat"><span class="material-icons-round">chat</span><span class="nav-label">Chat</span></a>
+            <a class="nav-item" data-view="analytics"><span class="material-icons-round">analytics</span><span class="nav-label">Analytics</span></a>
+            <a class="nav-item" data-view="tasks"><span class="material-icons-round">task_alt</span><span class="nav-label">Tasks</span></a>
+            <a class="nav-item" data-view="files"><span class="material-icons-round">folder</span><span class="nav-label">Files</span></a>
+            <a class="nav-item" data-view="terminal"><span class="material-icons-round">terminal</span><span class="nav-label">Terminal</span></a>
+            <a class="nav-item" data-view="health"><span class="material-icons-round">monitor_heart</span><span class="nav-label">Health</span></a>
+        </nav>
+        <div class="sidebar-footer">
+            <a class="nav-item" data-view="settings"><span class="material-icons-round">settings</span><span class="nav-label">Settings</span></a>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main">
+        <!-- Top Bar -->
+        <header class="topbar">
+            <div class="topbar-left">
+                <button class="icon-btn" id="sidebarToggle"><span class="material-icons-round" style="font-size:20px">menu</span></button>
+                <span id="providerBadge" class="provider-badge">PERPLEXITY</span>
+            </div>
+            <div class="topbar-right">
+                <div class="status-pill">
+                    <span class="status-dot" id="statusDot"></span>
+                    <span id="statusText">Connecting...</span>
+                </div>
+                <button class="icon-btn" id="clearBtn" title="Clear chat"><span class="material-icons-round" style="font-size:18px">delete_outline</span></button>
+            </div>
+        </header>
+
+        <!-- Chat Area -->
+        <div class="chat-area">
             <div class="messages" id="messages">
-                <div class="welcome">
+                <div class="welcome-screen" id="welcomeScreen">
+                    <div class="welcome-icon"><span class="material-icons-round" style="font-size:36px">auto_awesome</span></div>
                     <h2>Welcome to BibsClaw</h2>
-                    <p>Your personal AI assistant powered by Perplexity.<br>Type a message below or use the microphone to talk.</p>
+                    <p>Your personal AI assistant powered by Perplexity. Ask anything, automate tasks, or use voice commands.</p>
+                    <div class="quick-actions">
+                        <button class="quick-action" onclick="quickSend('What can you do?')">What can you do?</button>
+                        <button class="quick-action" onclick="quickSend('Show system health')">System Health</button>
+                        <button class="quick-action" onclick="quickSend('List scheduled tasks')">View Tasks</button>
+                        <button class="quick-action" onclick="quickSend('Help me write code')">Code Help</button>
+                    </div>
                 </div>
             </div>
-            <div class="thinking" id="thinking" style="display:none">Thinking...</div>
+
+            <div class="thinking" id="thinking">
+                <div class="dot-pulse"><span></span><span></span><span></span></div>
+                <span id="thinkingText">Thinking...</span>
+            </div>
+
             <div class="input-area">
-                <input type="text" id="messageInput" placeholder="Type a message or command..." autocomplete="off">
-                <button class="btn-voice" id="voiceBtn" title="Hold to speak">&#127908;</button>
-                <button class="btn-clear" id="clearBtn" title="Clear history">&#128465;</button>
-                <button class="btn-send" id="sendBtn">Send</button>
+                <div class="input-wrapper">
+                    <input type="text" id="messageInput" placeholder="Ask BibsClaw anything..." autocomplete="off">
+                    <button class="btn-voice" id="voiceBtn" title="Voice input"><span class="material-icons-round" style="font-size:20px">mic</span></button>
+                    <button class="btn-send" id="sendBtn"><span class="material-icons-round" style="font-size:18px">send</span> Send</button>
+                </div>
             </div>
         </div>
-        <div class="sidebar">
-            <h3>Scheduled Tasks</h3>
-            <div id="taskList">No tasks yet</div>
-            <h3>Tool Activity</h3>
-            <div id="toolLog"></div>
+    </div>
+
+    <!-- Right Panel -->
+    <aside class="right-panel">
+        <div class="panel-tabs">
+            <div class="panel-tab active" data-panel="tasks">Tasks</div>
+            <div class="panel-tab" data-panel="tools">Tools</div>
         </div>
-    </main>
+        <div class="panel-content">
+            <div id="taskPanel">
+                <div class="empty-state" id="taskList"><span class="material-icons-round" style="font-size:32px;display:block;margin-bottom:8px;opacity:0.3">event_note</span>No scheduled tasks</div>
+            </div>
+            <div id="toolPanel" style="display:none">
+                <div class="empty-state" id="toolLog"><span class="material-icons-round" style="font-size:32px;display:block;margin-bottom:8px;opacity:0.3">build</span>No tool activity</div>
+            </div>
+        </div>
+    </aside>
+
     <script>
-        const socket = io({ reconnection: true, reconnectionAttempts: 10, reconnectionDelay: 1000 });
-        const messagesDiv = document.getElementById('messages');
-        const thinkingDiv = document.getElementById('thinking');
-        const input = document.getElementById('messageInput');
-        const sendBtn = document.getElementById('sendBtn');
-        const voiceBtn = document.getElementById('voiceBtn');
-        const clearBtn = document.getElementById('clearBtn');
-        const statusDot = document.getElementById('statusDot');
-        const statusText = document.getElementById('statusText');
-        const providerBadge = document.getElementById('providerBadge');
-        const taskList = document.getElementById('taskList');
-        const toolLog = document.getElementById('toolLog');
+    // Socket.IO
+    const socket = io({ reconnection: true, reconnectionAttempts: 10, reconnectionDelay: 1000 });
+    const $ = id => document.getElementById(id);
+    const messages = $('messages'), input = $('messageInput'), sendBtn = $('sendBtn');
+    const voiceBtn = $('voiceBtn'), clearBtn = $('clearBtn'), thinking = $('thinking');
+    const thinkingText = $('thinkingText'), statusDot = $('statusDot'), statusText = $('statusText');
+    const providerBadge = $('providerBadge'), taskList = $('taskList'), toolLog = $('toolLog');
 
-        function addMessage(role, text) {
-            const welcome = messagesDiv.querySelector('.welcome');
-            if (welcome) welcome.remove();
-            const div = document.createElement('div');
-            div.className = 'message ' + role;
-            div.textContent = text;
-            messagesDiv.appendChild(div);
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
-        }
+    function addMessage(role, text) {
+        const ws = $('welcomeScreen'); if (ws) ws.remove();
+        const div = document.createElement('div');
+        div.className = 'msg ' + role;
+        const bubble = document.createElement('div');
+        bubble.className = 'msg-bubble';
+        bubble.textContent = text;
+        div.appendChild(bubble);
+        const time = document.createElement('div');
+        time.className = 'msg-time';
+        time.textContent = new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+        div.appendChild(time);
+        messages.appendChild(div);
+        messages.scrollTop = messages.scrollHeight;
+    }
 
-        function sendMessage() {
-            const msg = input.value.trim();
-            if (!msg) return;
-            addMessage('user', msg);
-            input.value = '';
-            sendBtn.disabled = true;
-            thinkingDiv.textContent = 'Thinking with Perplexity...';
-            thinkingDiv.style.display = 'block';
-            socket.emit('chat', msg);
-        }
+    function quickSend(msg) { input.value = msg; sendMessage(); }
 
-        input.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendMessage(); });
-        sendBtn.addEventListener('click', sendMessage);
-        clearBtn.addEventListener('click', () => {
-            fetch('/api/history/clear', { method: 'POST' }).then(() => {
-                messagesDiv.innerHTML = '<div class="message system">Conversation cleared</div>';
-            });
+    function sendMessage() {
+        const msg = input.value.trim();
+        if (!msg) return;
+        addMessage('user', msg);
+        input.value = '';
+        sendBtn.disabled = true;
+        thinkingText.textContent = 'Thinking...';
+        thinking.classList.add('visible');
+        socket.emit('chat', msg);
+    }
+
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
+    sendBtn.addEventListener('click', sendMessage);
+    clearBtn.addEventListener('click', () => {
+        fetch('/api/history/clear', { method: 'POST' }).then(() => {
+            messages.innerHTML = '';
+            addMessage('system', 'Conversation cleared');
         });
-
-        // Voice input using browser Speech Recognition API (free, no API key needed)
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        let recognition = null;
-        let isListening = false;
-    let finalTranscript = '';
-
-        if (SpeechRecognition) {
-            recognition = new SpeechRecognition();
-            recognition.continuous = false;
-            recognition.interimResults = true;
-            recognition.lang = 'en-US';
-
-            recognition.onstart = () => {
-                isListening = true;
-                voiceBtn.classList.add('recording');
-                voiceBtn.title = 'Listening... Click to stop';
-                input.placeholder = 'Listening...';
-            };
-
-            recognition.onresult = (event) => {
-                let transcript = '';
-                for (let i = event.resultIndex; i < event.results.length; i++) {
-                    transcript += event.results[i][0].transcript;
-                }
-                input.value = transcript;
-                if (event.results[event.results.length - 1].isFinal) {
-                    sendMessage();
-                }
-            };
-
-            recognition.onerror = (event) => {
-                isListening = false;
-                voiceBtn.classList.remove('recording');
-                voiceBtn.title = 'Click to speak';
-                input.placeholder = 'Type a message or command...';
-                if (event.error === 'not-allowed') {
-                    addMessage('system', 'Microphone access denied. Please allow microphone permission.');
-                } else if (event.error === 'no-speech') {
-          addMessage('system', 'No speech detected. Try again.');
-        } else if (event.error !== 'aborted') {
-                    addMessage('system', 'Voice error: ' + event.error);
-                }
-            };
-
-            recognition.onend = () => {
-                isListening = false;
-                voiceBtn.classList.remove('recording');
-                voiceBtn.title = 'Click to speak';
-                input.placeholder = 'Type a message or command...';
-            };
-        }
-
-        voiceBtn.addEventListener('click', () => {
-            if (!SpeechRecognition) {
-                addMessage('system', 'Speech recognition is not supported in this browser. Please use Chrome.');
-                return;
-            }
-            if (isListening) {
-                recognition.stop();
-            } else {
-                recognition.start();
-            }
-        });
-
-        socket.on('tts_audio', (base64Audio) => {
-      try {
-        const audio = new Audio('data:audio/mpeg;base64,' + base64Audio);
-        audio.play().catch(() => {});
-      } catch(e) {}
     });
 
-    socket.on('response', (text) => {
-            addMessage('assistant', text);
-            sendBtn.disabled = false;
-            thinkingDiv.style.display = 'none';
-        });
+    // Voice
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let recognition = null, isListening = false;
+    if (SR) {
+        recognition = new SR();
+        recognition.continuous = false; recognition.interimResults = true; recognition.lang = 'en-US';
+        recognition.onstart = () => { isListening = true; voiceBtn.classList.add('recording'); input.placeholder = 'Listening...'; };
+        recognition.onresult = (e) => {
+            let t = ''; for (let i = e.resultIndex; i < e.results.length; i++) t += e.results[i][0].transcript;
+            input.value = t;
+            if (e.results[e.results.length-1].isFinal) sendMessage();
+        };
+        recognition.onerror = (e) => { isListening = false; voiceBtn.classList.remove('recording'); input.placeholder = 'Ask BibsClaw anything...';
+            if (e.error === 'not-allowed') addMessage('system','Microphone access denied.');
+            else if (e.error === 'no-speech') addMessage('system','No speech detected.');
+            else if (e.error !== 'aborted') addMessage('system','Voice error: '+e.error);
+        };
+        recognition.onend = () => { isListening = false; voiceBtn.classList.remove('recording'); input.placeholder = 'Ask BibsClaw anything...'; };
+    }
+    voiceBtn.addEventListener('click', () => {
+        if (!SR) { addMessage('system','Speech recognition not supported. Use Chrome.'); return; }
+        isListening ? recognition.stop() : recognition.start();
+    });
 
-        socket.on('thinking', (isThinking) => {
-            thinkingDiv.style.display = isThinking ? 'block' : 'none';
-            if (!isThinking) sendBtn.disabled = false;
-        });
+    // Socket events
+    socket.on('response', t => { addMessage('assistant', t); sendBtn.disabled = false; thinking.classList.remove('visible'); });
+    socket.on('thinking', v => { if(v){thinking.classList.add('visible')}else{thinking.classList.remove('visible');sendBtn.disabled=false;} });
+    socket.on('agentThinking', t => { thinkingText.textContent = t; thinking.classList.add('visible'); });
+    socket.on('error', e => { addMessage('system','Error: '+e); sendBtn.disabled=false; thinking.classList.remove('visible'); });
+    socket.on('tts_audio', b64 => { try{new Audio('data:audio/mpeg;base64,'+b64).play().catch(()=>{})}catch(e){} });
+    socket.on('toolCall', d => {
+        const el = document.createElement('div'); el.className='tool-entry'; el.textContent='> '+d.name;
+        if(toolLog.querySelector('.empty-state')) toolLog.innerHTML='';
+        toolLog.prepend(el);
+    });
+    socket.on('toolResult', d => {
+        const el = document.createElement('div'); el.className='tool-entry '+(d.result.success?'success':'fail');
+        el.textContent=d.name+': '+(d.result.success?'OK':'FAIL');
+        toolLog.prepend(el);
+    });
+    socket.on('taskRun', t => {
+        const el = document.createElement('div'); el.className='tool-entry success'; el.textContent='Task: '+t.name;
+        toolLog.prepend(el);
+    });
+    socket.on('connected', d => { providerBadge.textContent = (d.provider||'AI').toUpperCase(); });
+    socket.on('disconnect', () => { statusDot.classList.add('offline'); statusText.textContent = 'Disconnected'; });
+    socket.on('connect', () => {
+        statusDot.classList.remove('offline'); statusText.textContent = 'Connected';
+        fetch('/api/tasks').then(r=>r.json()).then(tasks => {
+            if(!tasks.length) return;
+            taskList.innerHTML='';
+            tasks.forEach(t => { const d=document.createElement('div');d.className='task-card';d.innerHTML='<div class="task-name">'+t.name+'</div><div class="task-meta">'+t.cronExpression+' | Runs: '+t.runCount+'</div>';taskList.appendChild(d);});
+        }).catch(()=>{});
+    });
 
-        socket.on('agentThinking', (text) => {
-            thinkingDiv.textContent = text;
-            thinkingDiv.style.display = 'block';
-        });
+    // Sidebar toggle
+    $('sidebarToggle').addEventListener('click', () => { $('sidebar').classList.toggle('collapsed'); $('sidebar').classList.toggle('open'); });
 
-        socket.on('error', (errMsg) => {
-            addMessage('system', 'Error: ' + errMsg);
-            sendBtn.disabled = false;
-            thinkingDiv.style.display = 'none';
+    // Panel tabs
+    document.querySelectorAll('.panel-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.panel-tab').forEach(t=>t.classList.remove('active'));
+            tab.classList.add('active');
+            $('taskPanel').style.display = tab.dataset.panel==='tasks'?'block':'none';
+            $('toolPanel').style.display = tab.dataset.panel==='tools'?'block':'none';
         });
-
-        socket.on('toolCall', (data) => {
-            const div = document.createElement('div');
-            div.className = 'message tool';
-            div.textContent = 'Tool: ' + data.name;
-            toolLog.prepend(div);
-        });
-
-        socket.on('toolResult', (data) => {
-            const div = document.createElement('div');
-            div.className = 'message tool';
-            div.textContent = data.name + ': ' + (data.result.success ? 'OK' : 'FAIL');
-            toolLog.prepend(div);
-        });
-
-        socket.on('taskRun', (task) => {
-            const div = document.createElement('div');
-            div.className = 'message tool';
-            div.textContent = 'Task ran: ' + task.name;
-            toolLog.prepend(div);
-        });
-
-        socket.on('connected', (data) => {
-            providerBadge.textContent = (data.provider || 'AI').toUpperCase();
-        });
-
-        socket.on('disconnect', () => {
-            statusDot.className = 'status-dot inactive';
-            statusText.textContent = 'Disconnected';
-        });
-
-        socket.on('connect', () => {
-            statusDot.className = 'status-dot active';
-            statusText.textContent = 'Connected';
-            fetch('/api/tasks').then(r => r.json()).then(tasks => {
-                if (tasks.length === 0) return;
-                taskList.innerHTML = '';
-                tasks.forEach(t => {
-                    const div = document.createElement('div');
-                    div.className = 'task-item';
-                    div.innerHTML = '<div class="name">' + t.name + '</div><div class="meta">' + t.cronExpression + ' | Runs: ' + t.runCount + '</div>';
-                    taskList.appendChild(div);
-                });
-            }).catch(() => {});
-        });
+    });
     </script>
 </body>
 </html>
