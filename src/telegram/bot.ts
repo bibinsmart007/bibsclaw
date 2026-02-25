@@ -64,11 +64,9 @@ export class TelegramBot {
       }
 
       const userMessage = ctx.message.text;
-
       try {
         // Show typing indicator
         await ctx.replyWithChatAction("typing");
-
         const response = await this.agent.chat(userMessage);
 
         // Split long messages (Telegram has 4096 char limit)
@@ -97,9 +95,18 @@ export class TelegramBot {
       console.error("Telegram bot error:", err);
     });
 
-    // Start the bot
-    this.bot.start();
-    console.log("Telegram bot started successfully!");
+    // Delete any existing webhook/polling session to prevent 409 conflicts
+    try {
+      await this.bot.api.deleteWebhook({ drop_pending_updates: true });
+    } catch (e: any) {
+      console.warn("Could not delete webhook:", e.message);
+    }
+
+    // Start polling in background with conflict resolution
+    this.bot.start({
+      drop_pending_updates: true,
+      onStart: () => console.log("Telegram bot started successfully!"),
+    });
   }
 
   private isAllowedUser(username?: string): boolean {
@@ -114,6 +121,7 @@ export class TelegramBot {
   private splitMessage(text: string, maxLength: number): string[] {
     const chunks: string[] = [];
     let remaining = text;
+
     while (remaining.length > 0) {
       if (remaining.length <= maxLength) {
         chunks.push(remaining);
