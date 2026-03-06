@@ -10,6 +10,8 @@ import { TelegramBot } from "./telegram/bot.js";
 import { Database } from "./database/db.js";
 import { AuthManager } from "./auth/auth.js";
 import { logger } from "./middleware/logger.js";
+import { startBlogAgent } from "./integrations/blog-agent/index.js";
+import { startDiscordBot } from "./integrations/discord/index.js";
 
 const BANNER = `
 ${chalk.cyan(" ____  _ _       ____  _ ")}
@@ -80,6 +82,28 @@ async function main() {
         chalk.green(` Dashboard: http://0.0.0.0:${appConfig.web.port}`)
       );
     });
+  }
+
+  // Start Blog Agent (automated SEO blog post generation)
+  try {
+    startBlogAgent();
+    console.log(chalk.green(" Blog Agent started"));
+  } catch (blogErr: any) {
+    console.error(chalk.red(" Blog Agent failed to start:"), blogErr.message || blogErr);
+    console.log(chalk.yellow(" Continuing without Blog Agent..."));
+  }
+
+  // Start Discord Bot
+  try {
+    const discordClient = await startDiscordBot();
+    if (discordClient) {
+      console.log(chalk.green(" Discord bot started"));
+    } else {
+      console.log(chalk.gray(" Discord bot: disabled (no token)"));
+    }
+  } catch (discordErr: any) {
+    console.error(chalk.red(" Discord bot failed to start:"), discordErr.message || discordErr);
+    console.log(chalk.yellow(" Continuing without Discord bot..."));
   }
 
   // Status summary
