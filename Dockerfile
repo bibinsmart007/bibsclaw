@@ -2,8 +2,8 @@
 FROM node:22-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci --only=production && cp -R node_modules /prod_modules
-RUN npm ci
+RUN npm install --only=production && cp -R node_modules /prod_modules
+RUN npm install
 
 # Stage 2: Build
 FROM node:22-alpine AS builder
