@@ -52,7 +52,7 @@ export async function startDiscordBot(): Promise<Client | null> {
 
   /* ── Ready handler ────────────────────────────────── */
 
-  client.once(Events.ClientReady, async (readyClient: any) => {
+  client.once(Events.ClientReady, async (readyClient) => {
     console.log(`[Discord] ${BOT_NAME} online as ${readyClient.user.tag}`);
     console.log(`[Discord] Serving ${readyClient.guilds.cache.size} guild(s)`);
 
@@ -60,10 +60,10 @@ export async function startDiscordBot(): Promise<Client | null> {
     await registerSlashCommands();
 
     // Wire up event listeners (welcome, auto-role, etc.)
-    registerEvents(readyClient: any);
+    registerEvents(readyClient);
 
     // Start the daily SEO tip scheduler
-    startScheduler(readyClient: any);
+    startScheduler(readyClient);
   });
 
   /* ── Interaction handler (slash commands) ──────────── */
