@@ -55,7 +55,7 @@ async function sendWelcomeMessage(member: GuildMember): Promise<void> {
         [
           `Hey <@${member.id}>, thanks for joining the **AISocialGrowth** community!`,
           '',
-          'Here's how to get started:',
+        "Here's how to get started:",
         ].join('\n'),
       )
       .addFields(
