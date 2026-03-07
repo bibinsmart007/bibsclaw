@@ -52,7 +52,7 @@ export async function startDiscordBot(): Promise<Client | null> {
 
   /* ── Ready handler ────────────────────────────────── */
 
-  client.once(Events.ClientReady, async (readyClient) => {
+  client.once(Events.ClientReady, async (readyClient: any) => {
     console.log(`[Discord] ${BOT_NAME} online as ${readyClient.user.tag}`);
     console.log(`[Discord] Serving ${readyClient.guilds.cache.size} guild(s)`);
 
@@ -60,10 +60,10 @@ export async function startDiscordBot(): Promise<Client | null> {
     await registerSlashCommands();
 
     // Wire up event listeners (welcome, auto-role, etc.)
-    registerEvents(readyClient);
+    registerEvents(readyClient: any);
 
     // Start the daily SEO tip scheduler
-    startScheduler(readyClient);
+    startScheduler(readyClient: any);
   });
 
   /* ── Interaction handler (slash commands) ──────────── */
@@ -91,7 +91,7 @@ export async function startDiscordBot(): Promise<Client | null> {
             ephemeral: true,
           });
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(`[Discord] Error handling /${interaction.commandName}:`, err);
       const reply = interaction.deferred || interaction.replied
         ? interaction.editReply.bind(interaction)
@@ -102,11 +102,11 @@ export async function startDiscordBot(): Promise<Client | null> {
 
   /* ── Error handlers ───────────────────────────────── */
 
-  client.on(Events.Error, (err) => {
+  client.on(Events.Error, (err: any) => {
     console.error('[Discord] Client error:', err);
   });
 
-  client.on(Events.Warn, (msg) => {
+  client.on(Events.Warn, (msg: any) => {
     console.warn('[Discord] Client warning:', msg);
   });
 
