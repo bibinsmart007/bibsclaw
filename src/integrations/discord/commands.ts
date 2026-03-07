@@ -16,6 +16,7 @@ import {
 } from 'discord.js';
 import {
   BOT_COLOR,
+    BOT_NAME,
   AISOCIALGROWTH_URL,
   DISCORD_BOT_TOKEN,
   DISCORD_CLIENT_ID,
@@ -89,7 +90,7 @@ export const slashCommands = [
   new SlashCommandBuilder()
     .setName('audit-site')
     .setDescription('Run a quick audit on a website URL')
-    .addStringOption((opt) =>
+    .addStringOption((opt: any) =>
       opt
         .setName('url')
         .setDescription('The website URL to audit (e.g. https://example.com)')
