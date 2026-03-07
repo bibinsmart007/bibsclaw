@@ -1,6 +1,7 @@
 // src/integrations/blog-agent/index.ts
 // Blog Agent entry point — exports startBlogAgent() and utilities
 
+import { startScheduler } from './scheduler.js';
 export { loadBlogAgentConfig, BLOG_NICHES, INTERNAL_LINKS } from './config.js';
 export type { BlogAgentConfig } from './config.js';
 
