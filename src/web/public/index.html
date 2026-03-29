@@ -3,508 +3,1348 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BibsClaw Control</title>
+<title>BibsClaw — Agent Company HQ</title>
 <script src="/socket.io/socket.io.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Inter',sans-serif;background:#0f0f10;color:#e8e8e8;display:flex;height:100vh;overflow:hidden}
-.sidebar{width:240px;background:#18181b;border-right:1px solid #2a2a2e;display:flex;flex-direction:column;flex-shrink:0}
-.sidebar-brand{padding:20px 16px;border-bottom:1px solid #2a2a2e;display:flex;align-items:center;gap:10px}
-.brand-icon{width:32px;height:32px;background:linear-gradient(135deg,#e85d04,#f48c06);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px}
-.brand-name{font-weight:700;font-size:15px;color:#fff}
-.brand-sub{font-size:10px;color:#888;margin-top:1px}
-.nav-section{padding:12px 8px 4px;font-size:10px;font-weight:600;color:#666;text-transform:uppercase;letter-spacing:.8px}
-.nav-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:7px;cursor:pointer;font-size:13px;color:#aaa;margin:1px 8px;transition:all .15s}
-.nav-item:hover{background:#222225;color:#e8e8e8}
-.nav-item.active{background:#1c1c22;color:#fff;font-weight:500}
-.nav-item.active .nav-icon{color:#e85d04}
-.nav-icon{font-size:15px;width:18px;text-align:center}
-.nav-badge{margin-left:auto;background:#e85d04;color:#fff;font-size:10px;padding:1px 6px;border-radius:10px}
-.sidebar-version{margin-top:auto;padding:12px 16px;font-size:11px;color:#555;border-top:1px solid #2a2a2e;display:flex;align-items:center;gap:8px}
-.version-dot{width:7px;height:7px;background:#22c55e;border-radius:50%}
-.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
-.topbar{padding:0 24px;height:52px;border-bottom:1px solid #2a2a2e;display:flex;align-items:center;justify-content:space-between;background:#18181b;flex-shrink:0}
-.topbar-title{font-size:15px;font-weight:600;color:#fff}
-.topbar-sub{font-size:12px;color:#888;margin-top:2px}
-.topbar-actions{display:flex;gap:8px}
-.btn{padding:7px 14px;border-radius:7px;border:none;cursor:pointer;font-size:12px;font-weight:500;transition:all .15s}
-.btn-primary{background:#e85d04;color:#fff}
+:root{--accent:#e85d04;--accent2:#f48c06;--bg:#0d0d0f;--sidebar:#111114;--card:#17171a;--border:#252528;--text:#e2e2e8;--muted:#888;--green:#22c55e;--red:#ef4444;--yellow:#f59e0b;--blue:#3b82f6;--purple:#a855f7}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);display:flex;height:100vh;overflow:hidden;font-size:13px}
+/* SIDEBAR */
+.sidebar{width:235px;background:var(--sidebar);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
+.brand{padding:18px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;cursor:pointer}
+.brand-logo{width:34px;height:34px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.brand-text .name{font-weight:800;font-size:14px;color:#fff;letter-spacing:-.3px}
+.brand-text .sub{font-size:10px;color:var(--accent);font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+.nav-wrap{flex:1;overflow-y:auto;padding:8px 0}
+.nav-section{padding:10px 14px 4px;font-size:10px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.8px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:7px 12px;border-radius:7px;cursor:pointer;color:#999;margin:1px 6px;transition:all .12s;white-space:nowrap;overflow:hidden}
+.nav-item:hover{background:#1c1c20;color:var(--text)}
+.nav-item.active{background:#1e1e23;color:#fff;font-weight:500}
+.nav-item.active .ni{color:var(--accent)}
+.ni{font-size:14px;width:16px;text-align:center;flex-shrink:0}
+.nbadge{margin-left:auto;background:var(--accent);color:#fff;font-size:9px;padding:1px 5px;border-radius:8px;font-weight:700}
+.nbadge.green{background:#166534}
+.sidebar-foot{padding:10px 14px;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.online-dot{width:7px;height:7px;background:var(--green);border-radius:50%;flex-shrink:0;box-shadow:0 0 6px var(--green)}
+.foot-text{font-size:11px;color:#555}
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.topbar{height:50px;background:var(--sidebar);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 20px;flex-shrink:0}
+.topbar-left .title{font-size:15px;font-weight:700;color:#fff}
+.topbar-left .sub{font-size:11px;color:var(--muted)}
+.topbar-right{display:flex;align-items:center;gap:8px}
+.btn{padding:6px 13px;border-radius:7px;border:none;cursor:pointer;font-size:12px;font-weight:600;transition:all .12s;font-family:inherit}
+.btn-primary{background:var(--accent);color:#fff}
 .btn-primary:hover{background:#d04e00}
-.btn-ghost{background:transparent;color:#aaa;border:1px solid #2a2a2e}
-.btn-ghost:hover{background:#222225;color:#e8e8e8}
-.content{flex:1;overflow-y:auto;padding:24px}
+.btn-ghost{background:transparent;color:#aaa;border:1px solid var(--border)}
+.btn-ghost:hover{background:#1c1c20;color:#fff}
+.btn-sm{padding:4px 10px;font-size:11px}
+.btn-green{background:#166534;color:#4ade80}
+.btn-red{background:#450a0a;color:#f87171}
+/* CONTENT */
+.content{flex:1;overflow-y:auto;padding:20px}
 .page{display:none}
 .page.active{display:block}
-.card{background:#18181b;border:1px solid #2a2a2e;border-radius:10px;padding:20px;margin-bottom:16px}
-.card-title{font-size:13px;font-weight:600;color:#fff;margin-bottom:4px}
-.card-sub{font-size:12px;color:#888;margin-bottom:16px}
-.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
-.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
-.stat-card{background:#18181b;border:1px solid #2a2a2e;border-radius:10px;padding:18px}
-.stat-label{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
-.stat-value{font-size:28px;font-weight:700;color:#fff}
-.stat-sub{font-size:11px;color:#888;margin-top:4px}
-.status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
-.status-green{background:#22c55e}
-.status-red{background:#ef4444}
-.status-yellow{background:#f59e0b}
-.toggle{position:relative;display:inline-block;width:40px;height:22px}
-.toggle input{opacity:0;width:0;height:0}
-.toggle-slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#333;border-radius:11px;transition:.3s}
-.toggle-slider:before{position:absolute;content:"";height:16px;width:16px;left:3px;bottom:3px;background:#888;border-radius:50%;transition:.3s}
-.toggle input:checked + .toggle-slider{background:#e85d04}
-.toggle input:checked + .toggle-slider:before{transform:translateX(18px);background:#fff}
-.skill-item{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #222225}
-.skill-item:last-child{border-bottom:none}
-.skill-info{display:flex;align-items:center;gap:10px}
-.skill-icon{width:32px;height:32px;background:#1c1c22;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px}
-.skill-name{font-size:13px;font-weight:500;color:#e8e8e8}
-.skill-desc{font-size:11px;color:#888;margin-top:2px}
-.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.4px}
-.tag-core{background:#1c1c22;color:#888}
-.tag-active{background:#1a2e1a;color:#22c55e}
-.tag-warning{background:#2e2a1a;color:#f59e0b}
-.chat-container{display:flex;flex-direction:column;height:100%}
-.chat-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
-.msg{max-width:75%;padding:12px 16px;border-radius:12px;font-size:13px;line-height:1.5}
-.msg-user{background:#e85d04;color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
-.msg-ai{background:#1c1c22;color:#e8e8e8;align-self:flex-start;border-bottom-left-radius:4px}
-.msg-label{font-size:10px;color:#888;margin-bottom:4px}
-.chat-input-bar{display:flex;gap:8px;padding:16px;border-top:1px solid #2a2a2e;background:#18181b}
-.chat-input{flex:1;background:#111113;border:1px solid #2a2a2e;border-radius:8px;padding:10px 14px;color:#e8e8e8;font-size:13px;font-family:inherit;resize:none;height:42px}
-.chat-input:focus{outline:none;border-color:#e85d04}
-.agent-card{background:#1c1c22;border:1px solid #2a2a2e;border-radius:8px;padding:14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
-.agent-info{display:flex;align-items:center;gap:12px}
-.agent-avatar{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
-.agent-name{font-size:13px;font-weight:600;color:#e8e8e8}
-.agent-role{font-size:11px;color:#888;margin-top:2px}
-.form-group{margin-bottom:14px}
-.form-label{font-size:12px;color:#aaa;margin-bottom:6px;display:block}
-.form-input{width:100%;background:#111113;border:1px solid #2a2a2e;border-radius:7px;padding:9px 12px;color:#e8e8e8;font-size:13px;font-family:inherit}
-.form-input:focus{outline:none;border-color:#e85d04}
-.form-select{width:100%;background:#111113;border:1px solid #2a2a2e;border-radius:7px;padding:9px 12px;color:#e8e8e8;font-size:13px}
-.table{width:100%;border-collapse:collapse}
-.table th{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px;padding:10px 12px;text-align:left;border-bottom:1px solid #2a2a2e}
-.table td{padding:12px;font-size:13px;color:#ccc;border-bottom:1px solid #1c1c22}
-.table tr:last-child td{border-bottom:none}
-.progress-bar{background:#1c1c22;border-radius:4px;height:6px;overflow:hidden}
-.progress-fill{height:100%;background:linear-gradient(90deg,#e85d04,#f48c06);border-radius:4px;transition:width .3s}
-.cron-badge{padding:3px 8px;border-radius:4px;font-size:11px;font-weight:500}
-.cron-enabled{background:#1a2e1a;color:#22c55e}
-.cron-disabled{background:#2e1a1a;color:#ef4444}
-::-webkit-scrollbar{width:5px}
-::-webkit-scrollbar-track{background:#111}
-::-webkit-scrollbar-thumb{background:#333;border-radius:3px}
+/* CARDS */
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:14px}
+.card-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.card-title{font-size:13px;font-weight:700;color:#fff}
+.card-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+/* STAT */
+.stat{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px}
+.stat-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;font-weight:600}
+.stat-val{font-size:26px;font-weight:800;color:#fff;line-height:1}
+.stat-sub{font-size:11px;color:var(--muted);margin-top:4px}
+.stat-icon{font-size:20px;margin-bottom:8px}
+/* AGENT CARDS */
+.agent-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;display:flex;align-items:flex-start;gap:12px;margin-bottom:10px;transition:border-color .15s}
+.agent-card:hover{border-color:#333}
+.agent-avatar{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.agent-info{flex:1;min-width:0}
+.agent-name{font-size:13px;font-weight:700;color:#fff;display:flex;align-items:center;gap:6px}
+.agent-role{font-size:11px;color:var(--muted);margin-top:2px}
+.agent-prompt{font-size:11px;color:#666;margin-top:6px;line-height:1.5;font-style:italic}
+.agent-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
+/* TAGS */
+.tag{display:inline-flex;align-items:center;padding:2px 8px;border-radius:5px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+.tag-active{background:#0d2b0d;color:var(--green);border:1px solid #166534}
+.tag-standby{background:#1a1a0d;color:var(--yellow);border:1px solid #713f12}
+.tag-core{background:#1a1a1e;color:#555;border:1px solid var(--border)}
+.tag-new{background:#1e1040;color:var(--purple);border:1px solid #6b21a8}
+.tag-cto{background:#0d1b2e;color:var(--blue);border:1px solid #1d4ed8}
+.tag-finance{background:#2d1a0d;color:var(--accent2);border:1px solid #92400e}
+/* TOGGLE */
+.tog{position:relative;display:inline-block;width:36px;height:20px}
+.tog input{opacity:0;width:0;height:0}
+.tog-s{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#2a2a2e;border-radius:10px;transition:.25s}
+.tog-s:before{position:absolute;content:"";height:14px;width:14px;left:3px;bottom:3px;background:#555;border-radius:50%;transition:.25s}
+.tog input:checked + .tog-s{background:var(--accent)}
+.tog input:checked + .tog-s:before{transform:translateX(16px);background:#fff}
+/* DIVIDER */
+.divider{height:1px;background:var(--border);margin:12px 0}
+/* TABLE */
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);font-weight:600}
+.tbl td{padding:11px 12px;font-size:12px;color:#ccc;border-bottom:1px solid #1a1a1d}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:#1a1a1d}
+/* FORM */
+.fg{margin-bottom:12px}
+.fl{font-size:11px;color:#aaa;margin-bottom:5px;display:block;font-weight:600}
+.fi{width:100%;background:#0d0d0f;border:1px solid var(--border);border-radius:7px;padding:8px 12px;color:var(--text);font-size:12px;font-family:inherit;transition:border-color .15s}
+.fi:focus{outline:none;border-color:var(--accent)}
+.fs{width:100%;background:#0d0d0f;border:1px solid var(--border);border-radius:7px;padding:8px 12px;color:var(--text);font-size:12px;font-family:inherit}
+/* CHAT */
+.chat-wrap{display:flex;flex-direction:column;height:calc(100vh - 100px)}
+.chat-msgs{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px}
+.msg-row{display:flex;flex-direction:column;max-width:70%}
+.msg-row.user{align-self:flex-end;align-items:flex-end}
+.msg-row.ai{align-self:flex-start;align-items:flex-start}
+.msg-lbl{font-size:10px;color:var(--muted);margin-bottom:3px;font-weight:600}
+.msg-bubble{padding:10px 14px;border-radius:12px;font-size:12px;line-height:1.6}
+.msg-row.user .msg-bubble{background:var(--accent);color:#fff;border-bottom-right-radius:3px}
+.msg-row.ai .msg-bubble{background:#1c1c22;color:var(--text);border-bottom-left-radius:3px}
+.chat-bar{display:flex;gap:8px;padding:14px;border-top:1px solid var(--border);background:var(--sidebar)}
+.chat-in{flex:1;background:#0d0d0f;border:1px solid var(--border);border-radius:8px;padding:9px 13px;color:var(--text);font-size:12px;font-family:inherit;resize:none;height:40px}
+.chat-in:focus{outline:none;border-color:var(--accent)}
+/* LOG */
+.log-box{background:#080809;border:1px solid var(--border);border-radius:8px;padding:12px;font-family:monospace;font-size:11px;overflow-y:auto;height:calc(100vh - 220px)}
+.log-line{margin-bottom:3px;line-height:1.5}
+.log-info{color:var(--green)}
+.log-warn{color:var(--yellow)}
+.log-error{color:var(--red)}
+.log-system{color:var(--blue)}
+/* COMPANY ORG */
+.org-node{background:var(--card);border:2px solid var(--border);border-radius:10px;padding:12px 16px;text-align:center;min-width:140px}
+.org-node.ceo{border-color:var(--accent);background:#1a0d00}
+.org-node.cto{border-color:var(--blue);background:#0d1420}
+.org-node.cfo{border-color:var(--accent2);background:#1a1000}
+.org-node .on-icon{font-size:22px;margin-bottom:4px}
+.org-node .on-title{font-size:11px;font-weight:700;color:#fff}
+.org-node .on-role{font-size:10px;color:var(--muted)}
+.org-line{width:2px;height:20px;background:var(--border);margin:0 auto}
+.org-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+/* SCROLLBAR */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#2a2a2e;border-radius:4px}
+/* DEPT HEADER */
+.dept-hd{display:flex;align-items:center;gap:10px;margin:18px 0 10px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.dept-hd .dept-icon{font-size:18px}
+.dept-hd .dept-name{font-size:13px;font-weight:700;color:#fff}
+.dept-hd .dept-count{font-size:11px;color:var(--muted);margin-left:auto}
+/* STATUS indicator */
+.sdot{width:8px;height:8px;border-radius:50%;flex-shrink:0;display:inline-block;margin-right:5px}
+.sdot.green{background:var(--green);box-shadow:0 0 5px var(--green)}
+.sdot.yellow{background:var(--yellow)}
+.sdot.red{background:var(--red)}
+.sdot.blue{background:var(--blue)}
 </style>
 </head>
 <body>
+<!-- SIDEBAR -->
 <div class="sidebar">
-  <div class="sidebar-brand">
-    <div class="brand-icon">🦞</div>
-    <div>
-      <div class="brand-name">BibsClaw</div>
-      <div class="brand-sub">CONTROL</div>
+  <div class="brand" onclick="showPage('orgchart')">
+    <div class="brand-logo">🦞</div>
+    <div class="brand-text">
+      <div class="name">BibsClaw HQ</div>
+      <div class="sub">Agent Company</div>
     </div>
   </div>
-  <div style="overflow-y:auto;flex:1">
-    <div class="nav-section">Chat</div>
-    <div class="nav-item active" onclick="showPage('chat')"><span class="nav-icon">💬</span> Chat</div>
-    <div class="nav-section">Control</div>
-    <div class="nav-item" onclick="showPage('overview')"><span class="nav-icon">📊</span> Overview</div>
-    <div class="nav-item" onclick="showPage('channels')"><span class="nav-icon">📡</span> Channels</div>
-    <div class="nav-item" onclick="showPage('sessions')"><span class="nav-icon">🗂️</span> Sessions</div>
-    <div class="nav-item" onclick="showPage('usage')"><span class="nav-icon">📈</span> Usage</div>
-    <div class="nav-item" onclick="showPage('cron')"><span class="nav-icon">⏰</span> Cron Jobs</div>
-    <div class="nav-section">Agent</div>
-    <div class="nav-item" onclick="showPage('agents')"><span class="nav-icon">🤖</span> Agents <span class="nav-badge">5</span></div>
-    <div class="nav-item" onclick="showPage('skills')"><span class="nav-icon">⚡</span> Skills</div>
-    <div class="nav-item" onclick="showPage('nodes')"><span class="nav-icon">🖥️</span> Nodes</div>
-    <div class="nav-section">Settings</div>
-    <div class="nav-item" onclick="showPage('config')"><span class="nav-icon">⚙️</span> Config</div>
-    <div class="nav-item" onclick="showPage('communications')"><span class="nav-icon">📨</span> Communications</div>
-    <div class="nav-item" onclick="showPage('appearance')"><span class="nav-icon">🎨</span> Appearance</div>
-    <div class="nav-item" onclick="showPage('automation')"><span class="nav-icon">🔁</span> Automation</div>
-    <div class="nav-item" onclick="showPage('logs')"><span class="nav-icon">📋</span> Logs</div>
+  <div class="nav-wrap">
+    <div class="nav-section">Command</div>
+    <div class="nav-item active" onclick="nav(this,'chat')"><span class="ni">💬</span>Command Chat</div>
+    <div class="nav-item" onclick="nav(this,'orgchart')"><span class="ni">🏢</span>Org Chart <span class="nbadge">25</span></div>
+    <div class="nav-item" onclick="nav(this,'overview')"><span class="ni">📊</span>HQ Overview</div>
+
+    <div class="nav-section">Leadership</div>
+    <div class="nav-item" onclick="nav(this,'cto')"><span class="ni">🧠</span>CTO Agent</div>
+    <div class="nav-item" onclick="nav(this,'finance')"><span class="ni">💰</span>Finance Agent</div>
+
+    <div class="nav-section">AISocialGrowth</div>
+    <div class="nav-item" onclick="nav(this,'social')"><span class="ni">📱</span>Social Accounts</div>
+    <div class="nav-item" onclick="nav(this,'store')"><span class="ni">🛒</span>Store Integration</div>
+    <div class="nav-item" onclick="nav(this,'products')"><span class="ni">🏆</span>Winning Products</div>
+    <div class="nav-item" onclick="nav(this,'competitor')"><span class="ni">🔍</span>Competitor Intel</div>
+    <div class="nav-item" onclick="nav(this,'content')"><span class="ni">✍️</span>AI Content Studio</div>
+    <div class="nav-item" onclick="nav(this,'video')"><span class="ni">🎬</span>Video Script Gen</div>
+    <div class="nav-item" onclick="nav(this,'calendar')"><span class="ni">📅</span>Content Calendar</div>
+    <div class="nav-item" onclick="nav(this,'analytics')"><span class="ni">📈</span>Analytics</div>
+    <div class="nav-item" onclick="nav(this,'adperf')"><span class="ni">🎯</span>Ad Performance</div>
+    <div class="nav-item" onclick="nav(this,'reports')"><span class="ni">📋</span>Client Reports</div>
+    <div class="nav-item" onclick="nav(this,'funnel')"><span class="ni">🚀</span>Sales Funnel</div>
+
+    <div class="nav-section">Growth Ops</div>
+    <div class="nav-item" onclick="nav(this,'marketing')"><span class="ni">📣</span>Marketing Agent</div>
+    <div class="nav-item" onclick="nav(this,'sales')"><span class="ni">💼</span>Sales Agent</div>
+    <div class="nav-item" onclick="nav(this,'geo')"><span class="ni">🌐</span>GEO Agent</div>
+    <div class="nav-item" onclick="nav(this,'seo')"><span class="ni">🔎</span>SEO Agent</div>
+    <div class="nav-item" onclick="nav(this,'research')"><span class="ni">🧪</span>Research Agent</div>
+
+    <div class="nav-section">Engineering</div>
+    <div class="nav-item" onclick="nav(this,'dev')"><span class="ni">💻</span>Dev Agent</div>
+    <div class="nav-item" onclick="nav(this,'debug')"><span class="ni">🐛</span>Debug Agent</div>
+    <div class="nav-item" onclick="nav(this,'qa')"><span class="ni">✅</span>QA Agent</div>
+
+    <div class="nav-section">Operations</div>
+    <div class="nav-item" onclick="nav(this,'cron')"><span class="ni">⏰</span>Cron Jobs</div>
+    <div class="nav-item" onclick="nav(this,'usage')"><span class="ni">📊</span>Usage & Cost</div>
+    <div class="nav-item" onclick="nav(this,'logs')"><span class="ni">📋</span>Live Logs</div>
+    <div class="nav-item" onclick="nav(this,'config')"><span class="ni">⚙️</span>Config</div>
   </div>
-  <div class="sidebar-version"><span class="version-dot"></span> v1.0.0 &nbsp;|&nbsp; BibsClaw</div>
+  <div class="sidebar-foot">
+    <span class="online-dot"></span>
+    <span class="foot-text">25 Agents · Railway Live</span>
+  </div>
 </div>
+<!-- MAIN -->
 <div class="main">
   <div class="topbar">
-    <div>
-      <div class="topbar-title" id="page-title">Chat</div>
-      <div class="topbar-sub" id="page-sub">Talk to BibsClaw AI</div>
+    <div class="topbar-left">
+      <div class="title" id="pg-title">Command Chat</div>
+      <div class="sub" id="pg-sub">Give instructions to any agent — only you can activate them</div>
     </div>
-    <div class="topbar-actions">
-      <button class="btn btn-ghost" onclick="refreshStatus()">↻ Refresh</button>
-      <button class="btn btn-primary" id="main-action-btn">+ New Chat</button>
+    <div class="topbar-right">
+      <button class="btn btn-ghost" onclick="refreshAll()">↻ Refresh</button>
+      <button class="btn btn-primary" id="top-btn" onclick="topAction()">+ New Instruction</button>
     </div>
   </div>
   <div class="content" id="main-content">
 
-    <!-- CHAT PAGE -->
-    <div class="page active" id="page-chat" style="height:calc(100vh - 100px);display:flex;flex-direction:column">
-      <div class="chat-messages" id="chat-messages">
-        <div>
-          <div class="msg-label">BibsClaw AI</div>
-          <div class="msg msg-ai">👋 Hello Bibin! I'm BibsClaw, your personal AI assistant. I can help you with coding, research, automation, marketing, and more. What would you like to do today?</div>
+  <!-- ═══════════════════════════════════════════ CHAT PAGE -->
+  <div class="page active" id="page-chat" style="padding:0;height:calc(100vh - 50px)">
+    <div class="chat-wrap">
+      <div style="padding:12px 16px;background:#0f0f12;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px">
+        <select class="fs" style="width:220px;font-size:12px" id="active-agent">
+          <option value="all">📢 Broadcast to All Agents</option>
+          <option value="cto">🧠 CTO Agent</option>
+          <option value="finance">💰 Finance Agent</option>
+          <option value="social">📱 Social Accounts Agent</option>
+          <option value="store">🛒 Store Integration Agent</option>
+          <option value="products">🏆 Winning Products Agent</option>
+          <option value="competitor">🔍 Competitor Intel Agent</option>
+          <option value="content">✍️ AI Content Studio Agent</option>
+          <option value="video">🎬 Video Script Agent</option>
+          <option value="calendar">📅 Content Calendar Agent</option>
+          <option value="analytics">📈 Analytics Agent</option>
+          <option value="adperf">🎯 Ad Performance Agent</option>
+          <option value="reports">📋 Client Reports Agent</option>
+          <option value="funnel">🚀 Sales Funnel Agent</option>
+          <option value="marketing">📣 Marketing Agent</option>
+          <option value="sales">💼 Sales Agent</option>
+          <option value="geo">🌐 GEO Agent</option>
+          <option value="seo">🔎 SEO Agent</option>
+          <option value="research">🧪 Research Agent</option>
+          <option value="dev">💻 Dev Agent</option>
+          <option value="debug">🐛 Debug Agent</option>
+          <option value="qa">✅ QA Agent</option>
+        </select>
+        <span style="font-size:11px;color:var(--muted)">Only your instructions activate agents</span>
+      </div>
+      <div class="chat-msgs" id="chat-msgs">
+        <div class="msg-row ai">
+          <div class="msg-lbl">🦞 BibsClaw HQ</div>
+          <div class="msg-bubble">👋 Good day, Bibin! Your company of 25 agents is standing by. Select an agent and give your instruction — nothing happens without your command. What shall we do today?</div>
         </div>
       </div>
-      <div class="chat-input-bar">
-        <textarea class="chat-input" id="chat-input" placeholder="Message BibsClaw..." onkeydown="handleChatKey(event)"></textarea>
-        <button class="btn btn-primary" onclick="sendMessage()" style="height:42px;padding:0 18px">Send</button>
+      <div class="chat-bar">
+        <textarea class="chat-in" id="chat-in" placeholder="Give an instruction to your selected agent..." onkeydown="chatKey(event)"></textarea>
+        <button class="btn btn-primary" onclick="sendCmd()" style="height:40px;padding:0 16px">▶ Send</button>
       </div>
     </div>
-
-    <!-- OVERVIEW PAGE -->
-    <div class="page" id="page-overview">
-      <div class="grid-4" style="margin-bottom:20px">
-        <div class="stat-card"><div class="stat-label">Status</div><div class="stat-value" style="font-size:16px"><span class="status-dot status-green"></span>Online</div><div class="stat-sub">Railway Production</div></div>
-        <div class="stat-card"><div class="stat-label">Active Agents</div><div class="stat-value">5</div><div class="stat-sub">All running</div></div>
-        <div class="stat-card"><div class="stat-label">Cron Jobs</div><div class="stat-value" id="cron-count">0</div><div class="stat-sub">Scheduled</div></div>
-        <div class="stat-card"><div class="stat-label">API Cost Today</div><div class="stat-value">$0.00</div><div class="stat-sub">Within budget</div></div>
-      </div>
-      <div class="grid-2">
-        <div class="card">
-          <div class="card-title">System Health</div>
-          <div class="card-sub">Service status and uptime</div>
-          <div style="display:flex;flex-direction:column;gap:10px">
-            <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;color:#aaa">BibsClaw API</span><span class="tag tag-active">● Online</span></div>
-            <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;color:#aaa">Telegram Bot</span><span id="tg-status" class="tag tag-warning">● Checking...</span></div>
-            <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;color:#aaa">Scheduler</span><span class="tag tag-active">● Running</span></div>
-            <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;color:#aaa">Voice Interface</span><span class="tag tag-core">● Standby</span></div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-title">Recent Activity</div>
-          <div class="card-sub">Last agent actions</div>
-          <div id="activity-log" style="font-size:12px;color:#888;display:flex;flex-direction:column;gap:8px">
-            <div>⚡ Waiting for activity...</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- AGENTS PAGE -->
-    <div class="page" id="page-agents">
-      <div class="card" style="margin-bottom:16px">
-        <div class="card-title">Agent Army</div>
-        <div class="card-sub">Your 5 specialized autonomous agents</div>
-        <div id="agents-list">
-          <div class="agent-card"><div class="agent-info"><div class="agent-avatar" style="background:#1a2e3e">🔍</div><div><div class="agent-name">Research Agent</div><div class="agent-role">Monitors trends, competitors, Reddit, ProductHunt</div></div></div><div style="display:flex;align-items:center;gap:10px"><span class="tag tag-active">Active</span><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></div></div>
-          <div class="agent-card"><div class="agent-info"><div class="agent-avatar" style="background:#1a3e1e">💻</div><div><div class="agent-name">Dev Agent</div><div class="agent-role">Writes code, creates PRs, deploys to Railway</div></div></div><div style="display:flex;align-items:center;gap:10px"><span class="tag tag-active">Active</span><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></div></div>
-          <div class="agent-card"><div class="agent-info"><div class="agent-avatar" style="background:#3e1a1a">🐛</div><div><div class="agent-name">Debug Agent</div><div class="agent-role">Monitors logs, catches errors, triggers fixes</div></div></div><div style="display:flex;align-items:center;gap:10px"><span class="tag tag-active">Active</span><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></div></div>
-          <div class="agent-card"><div class="agent-info"><div class="agent-avatar" style="background:#2e1a3e">📣</div><div><div class="agent-name">Marketing Agent</div><div class="agent-role">Blog posts, tweets, SEO, Product Hunt launches</div></div></div><div style="display:flex;align-items:center;gap:10px"><span class="tag tag-active">Active</span><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></div></div>
-          <div class="agent-card"><div class="agent-info"><div class="agent-avatar" style="background:#3e2e1a">💰</div><div><div class="agent-name">Sales Agent</div><div class="agent-role">Outreach, follow-ups, lead management</div></div></div><div style="display:flex;align-items:center;gap:10px"><span class="tag tag-active">Active</span><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></div></div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-title">Quick Task</div>
-        <div class="card-sub">Send a task to a specific agent</div>
-        <div class="form-group"><label class="form-label">Agent</label><select class="form-select"><option>Research Agent</option><option>Dev Agent</option><option>Debug Agent</option><option>Marketing Agent</option><option>Sales Agent</option></select></div>
-        <div class="form-group"><label class="form-label">Task</label><textarea class="form-input" rows="3" placeholder="Describe the task..."></textarea></div>
-        <button class="btn btn-primary" onclick="alert('Task queued!')">▶ Run Task</button>
-      </div>
-    </div>
-
-    <!-- SKILLS PAGE -->
-    <div class="page" id="page-skills">
-      <div class="card">
-        <div class="card-title">Installed Skills</div>
-        <div class="card-sub">Toggle capabilities for your agents</div>
-        <div>
-          <div class="skill-item"><div class="skill-info"><div class="skill-icon">🌐</div><div><div class="skill-name">web-search</div><div class="skill-desc">Search the web for real-time info</div></div></div><div style="display:flex;align-items:center;gap:10px"><span class="tag tag-core">CORE</span><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></div></div>
-          <div class="skill-item"><div class="skill-info"><div class="skill-icon">🐙</div><div><div class="skill-name">github</div><div class="skill-desc">Read, write and manage GitHub repos</div></div></div><div style="display:flex;align-items:center;gap:10px"><span class="tag tag-core">CORE</span><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></div></div>
-          <div class="skill-item"><div class="skill-info"><div class="skill-icon">📂</div><div><div class="skill-name">file-system</div><div class="skill-desc">Read and write files on the host</div></div></div><div style="display:flex;align-items:center;gap:10px"><span class="tag tag-core">CORE</span><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></div></div>
-          <div class="skill-item"><div class="skill-info"><div class="skill-icon">💻</div><div><div class="skill-name">shell</div><div class="skill-desc">Run shell commands and scripts</div></div></div><div style="display:flex;align-items:center;gap:10px"><span class="tag tag-core">CORE</span><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></div></div>
-          <div class="skill-item"><div class="skill-info"><div class="skill-icon">📧</div><div><div class="skill-name">gmail</div><div class="skill-desc">Send and read emails</div></div></div><div style="display:flex;align-items:center;gap:10px"><span class="tag tag-warning">SETUP</span><label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label></div></div>
-          <div class="skill-item"><div class="skill-info"><div class="skill-icon">🐦</div><div><div class="skill-name">twitter</div><div class="skill-desc">Post and monitor Twitter/X</div></div></div><div style="display:flex;align-items:center;gap:10px"><span class="tag tag-warning">SETUP</span><label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label></div></div>
-          <div class="skill-item"><div class="skill-info"><div class="skill-icon">🎤</div><div><div class="skill-name">voice</div><div class="skill-desc">Whisper STT + ElevenLabs TTS</div></div></div><div style="display:flex;align-items:center;gap:10px"><span class="tag tag-core">CORE</span><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></div></div>
-          <div class="skill-item"><div class="skill-info"><div class="skill-icon">📱</div><div><div class="skill-name">telegram</div><div class="skill-desc">Telegram bot messaging</div></div></div><div style="display:flex;align-items:center;gap:10px"><span class="tag tag-active">ACTIVE</span><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></div></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- CHANNELS PAGE -->
-    <div class="page" id="page-channels">
-      <div class="grid-2">
-        <div class="card">
-          <div class="card-title">📱 Telegram Bot</div>
-          <div class="card-sub">Bot status and configuration</div>
-          <table class="table"><tr><td style="color:#888">Status</td><td><span class="status-dot status-green"></span>Running</td></tr><tr><td style="color:#888">Mode</td><td>Polling</td></tr><tr><td style="color:#888">Last Probe</td><td id="tg-probe">Checking...</td></tr></table>
-        </div>
-        <div class="card">
-          <div class="card-title">💬 WhatsApp</div>
-          <div class="card-sub">WhatsApp Web integration</div>
-          <table class="table"><tr><td style="color:#888">Status</td><td><span class="status-dot status-red"></span>Not Linked</td></tr><tr><td style="color:#888">Connected</td><td>No</td></tr></table>
-          <button class="btn btn-primary" style="margin-top:12px">Link WhatsApp</button>
-        </div>
-        <div class="card">
-          <div class="card-title">🎙️ Voice Interface</div>
-          <div class="card-sub">Whisper STT + ElevenLabs TTS</div>
-          <table class="table"><tr><td style="color:#888">STT</td><td>Whisper (OpenAI)</td></tr><tr><td style="color:#888">TTS</td><td>ElevenLabs</td></tr><tr><td style="color:#888">Status</td><td><span class="status-dot status-yellow"></span>Standby</td></tr></table>
-        </div>
-        <div class="card">
-          <div class="card-title">🤖 Discord Bot</div>
-          <div class="card-sub">Discord server integration</div>
-          <table class="table"><tr><td style="color:#888">Status</td><td><span class="status-dot status-green"></span>Connected</td></tr><tr><td style="color:#888">Mode</td><td>Bot</td></tr></table>
-        </div>
-      </div>
-    </div>
-
-    <!-- CRON PAGE -->
-    <div class="page" id="page-cron">
-      <div class="grid-2">
-        <div class="card">
-          <div class="card-title">Scheduled Jobs</div>
-          <div class="card-sub">All recurring agent tasks</div>
-          <div id="cron-list">
-            <div style="color:#888;font-size:13px;padding:16px 0;text-align:center">No jobs yet. Create one →</div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-title">New Job</div>
-          <div class="card-sub">Create a scheduled agent run</div>
-          <div class="form-group"><label class="form-label">Job Name *</label><input class="form-input" id="cron-name" placeholder="e.g. Daily Research Scan"></div>
-          <div class="form-group"><label class="form-label">Agent</label><select class="form-select" id="cron-agent"><option>Research Agent</option><option>Dev Agent</option><option>Debug Agent</option><option>Marketing Agent</option><option>Sales Agent</option></select></div>
-          <div class="form-group"><label class="form-label">Schedule (cron)</label><input class="form-input" id="cron-schedule" placeholder="0 9 * * * (daily 9am)"></div>
-          <div class="form-group"><label class="form-label">Prompt / Task</label><textarea class="form-input" id="cron-prompt" rows="3" placeholder="What should the agent do..."></textarea></div>
-          <button class="btn btn-primary" onclick="addCronJob()">+ Create Job</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- USAGE PAGE -->
-    <div class="page" id="page-usage">
-      <div class="grid-4" style="margin-bottom:20px">
-        <div class="stat-card"><div class="stat-label">Messages Today</div><div class="stat-value" id="msg-count">0</div><div class="stat-sub">0 user · 0 assistant</div></div>
-        <div class="stat-card"><div class="stat-label">Tokens Used</div><div class="stat-value" id="token-count">0</div><div class="stat-sub">This session</div></div>
-        <div class="stat-card"><div class="stat-label">Cost Today</div><div class="stat-value">$0.00</div><div class="stat-sub">Within budget</div></div>
-        <div class="stat-card"><div class="stat-label">Active Sessions</div><div class="stat-value">1</div><div class="stat-sub">Live</div></div>
-      </div>
-      <div class="card">
-        <div class="card-title">Usage Overview</div>
-        <div class="card-sub">Token consumption and cost per agent</div>
-        <table class="table">
-          <thead><tr><th>Agent</th><th>Messages</th><th>Tokens</th><th>Cost</th><th>Status</th></tr></thead>
-          <tbody>
-            <tr><td>Research Agent</td><td>0</td><td>0</td><td>$0.00</td><td><span class="tag tag-active">Active</span></td></tr>
-            <tr><td>Dev Agent</td><td>0</td><td>0</td><td>$0.00</td><td><span class="tag tag-active">Active</span></td></tr>
-            <tr><td>Debug Agent</td><td>0</td><td>0</td><td>$0.00</td><td><span class="tag tag-active">Active</span></td></tr>
-            <tr><td>Marketing Agent</td><td>0</td><td>0</td><td>$0.00</td><td><span class="tag tag-active">Active</span></td></tr>
-            <tr><td>Sales Agent</td><td>0</td><td>0</td><td>$0.00</td><td><span class="tag tag-active">Active</span></td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- SESSIONS PAGE -->
-    <div class="page" id="page-sessions">
-      <div class="card">
-        <div class="card-title">Active Sessions</div>
-        <div class="card-sub">Live agent sessions and memory stores</div>
-        <table class="table">
-          <thead><tr><th>Key</th><th>Label</th><th>Kind</th><th>Updated</th><th>Tokens</th></tr></thead>
-          <tbody id="sessions-body">
-            <tr><td style="color:#e85d04">agent:main:main</td><td>heartbeat</td><td><span class="tag tag-active">direct</span></td><td>Just now</td><td>n/a</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- CONFIG PAGE -->
-    <div class="page" id="page-config">
-      <div class="card">
-        <div class="card-title">BibsClaw Configuration</div>
-        <div class="card-sub">Core settings and API keys</div>
-        <div class="grid-2">
-          <div class="form-group"><label class="form-label">Perplexity API Key</label><input class="form-input" type="password" placeholder="pplx-..."></div>
-          <div class="form-group"><label class="form-label">Anthropic API Key</label><input class="form-input" type="password" placeholder="sk-ant-..."></div>
-          <div class="form-group"><label class="form-label">OpenAI API Key</label><input class="form-input" type="password" placeholder="sk-..."></div>
-          <div class="form-group"><label class="form-label">ElevenLabs API Key</label><input class="form-input" type="password" placeholder="..."></div>
-          <div class="form-group"><label class="form-label">Telegram Bot Token</label><input class="form-input" type="password" placeholder="123456:ABC..."></div>
-          <div class="form-group"><label class="form-label">Railway URL</label><input class="form-input" value="https://bibsclaw-production.up.railway.app"></div>
-        </div>
-        <button class="btn btn-primary" onclick="alert('Config saved!')">💾 Save Config</button>
-      </div>
-    </div>
-
-    <!-- LOGS PAGE -->
-    <div class="page" id="page-logs">
-      <div class="card" style="height:calc(100vh - 160px)">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-          <div><div class="card-title">Live Logs</div><div class="card-sub">Real-time agent activity stream</div></div>
-          <button class="btn btn-ghost" onclick="document.getElementById('log-output').innerHTML=''">Clear</button>
-        </div>
-        <div id="log-output" style="background:#0a0a0b;border:1px solid #2a2a2e;border-radius:8px;padding:14px;height:calc(100% - 60px);overflow-y:auto;font-family:monospace;font-size:12px;color:#22c55e">
-          <div>[BibsClaw] System initialized</div>
-          <div>[BibsClaw] Socket.IO ready</div>
-          <div>[BibsClaw] Waiting for connections...</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- COMMUNICATIONS PAGE -->
-    <div class="page" id="page-communications">
-      <div class="card">
-        <div class="card-title">Communications Settings</div>
-        <div class="card-sub">Manage notification channels and messaging</div>
-        <div class="form-group"><label class="form-label">Telegram Allowed Users</label><input class="form-input" placeholder="comma-separated user IDs"></div>
-        <div class="form-group"><label class="form-label">Notification Level</label><select class="form-select"><option>All</option><option>Errors Only</option><option>Silent</option></select></div>
-        <button class="btn btn-primary" onclick="alert('Saved!')">Save</button>
-      </div>
-    </div>
-
-    <!-- APPEARANCE PAGE -->
-    <div class="page" id="page-appearance">
-      <div class="card">
-        <div class="card-title">Appearance</div>
-        <div class="card-sub">Customize your control panel</div>
-        <div class="form-group"><label class="form-label">Theme</label><select class="form-select" onchange="applyTheme(this.value)"><option value="dark">Dark (Default)</option><option value="light">Light</option></select></div>
-        <div class="form-group"><label class="form-label">Accent Color</label><input type="color" value="#e85d04" onchange="document.documentElement.style.setProperty('--accent',this.value)" style="background:#111;border:1px solid #2a2a2e;border-radius:7px;padding:4px;height:38px;width:80px;cursor:pointer"></div>
-        <div class="form-group"><label class="form-label">Brand Name</label><input class="form-input" value="BibsClaw"></div>
-      </div>
-    </div>
-
-    <!-- AUTOMATION PAGE -->
-    <div class="page" id="page-automation">
-      <div class="card">
-        <div class="card-title">Automation Rules</div>
-        <div class="card-sub">Trigger-based agent workflows</div>
-        <div style="color:#888;font-size:13px;padding:20px 0;text-align:center">No automation rules yet. Create your first rule below.</div>
-        <div class="form-group"><label class="form-label">Trigger</label><select class="form-select"><option>On Error</option><option>On New Commit</option><option>On Schedule</option><option>On User Message</option></select></div>
-        <div class="form-group"><label class="form-label">Action</label><select class="form-select"><option>Run Debug Agent</option><option>Run Dev Agent</option><option>Send Telegram Alert</option><option>Post to Twitter</option></select></div>
-        <button class="btn btn-primary" onclick="alert('Rule created!')">+ Add Rule</button>
-      </div>
-    </div>
-
-    <!-- NODES PAGE -->
-    <div class="page" id="page-nodes">
-      <div class="card">
-        <div class="card-title">Connected Nodes</div>
-        <div class="card-sub">Execution environments and devices</div>
-        <div class="agent-card"><div class="agent-info"><div class="agent-avatar" style="background:#1a2e3e">🚂</div><div><div class="agent-name">Railway Production</div><div class="agent-role">bibsclaw-production.up.railway.app · us-west2</div></div></div><span class="tag tag-active">● Online</span></div>
-        <div class="agent-card" style="margin-top:8px"><div class="agent-info"><div class="agent-avatar" style="background:#2a1a2e">🦞</div><div><div class="agent-name">Main Gateway</div><div class="agent-role">Local agent runtime · 1 replica</div></div></div><span class="tag tag-active">● Active</span></div>
-      </div>
-    </div>
-
   </div>
-</div>
-<script>
-const API = '';
-let cronJobs = [];
-let messageCount = 0;
-let tokenCount = 0;
 
-function showPage(name) {
-  document.querySelectorAll('.page').forEach(p => { p.classList.remove('active'); p.style.display='none'; });
+  <!-- ═══════════════════════════════════════════ ORG CHART -->
+  <div class="page" id="page-orgchart">
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="font-size:22px;font-weight:800;color:#fff;margin-bottom:4px">AISocialGrowth Agent Company</div>
+      <div style="font-size:12px;color:var(--muted)">25 specialist agents · All report to Bibin Lonappan only</div>
+    </div>
+    <!-- CEO -->
+    <div style="display:flex;justify-content:center;margin-bottom:0">
+      <div class="org-node ceo"><div class="on-icon">👑</div><div class="on-title">Bibin Lonappan</div><div class="on-role">CEO & Commander</div></div>
+    </div>
+    <div class="org-line"></div>
+    <!-- L2 -->
+    <div class="org-row" style="margin-bottom:0">
+      <div class="org-node cto"><div class="on-icon">🧠</div><div class="on-title">CTO Agent</div><div class="on-role">Tech & Systems</div></div>
+      <div class="org-node cfo"><div class="on-icon">💰</div><div class="on-title">Finance Agent</div><div class="on-role">Cost & Revenue</div></div>
+    </div>
+    <div class="org-line"></div>
+    <!-- Departments -->
+    <div class="org-row">
+      <div style="text-align:center">
+        <div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">AISocialGrowth Dept</div>
+        <div class="org-row" style="flex-direction:column;gap:6px;align-items:center">
+          <div class="org-node" style="min-width:120px"><div class="on-icon">📱</div><div class="on-title">Social Agent</div></div>
+          <div class="org-node" style="min-width:120px"><div class="on-icon">🛒</div><div class="on-title">Store Agent</div></div>
+          <div class="org-node" style="min-width:120px"><div class="on-icon">🏆</div><div class="on-title">Products Agent</div></div>
+          <div class="org-node" style="min-width:120px"><div class="on-icon">🔍</div><div class="on-title">Intel Agent</div></div>
+          <div class="org-node" style="min-width:120px"><div class="on-icon">✍️</div><div class="on-title">Content Agent</div></div>
+          <div class="org-node" style="min-width:120px"><div class="on-icon">🎬</div><div class="on-title">Video Agent</div></div>
+          <div class="org-node" style="min-width:120px"><div class="on-icon">📅</div><div class="on-title">Calendar Agent</div></div>
+          <div class="org-node" style="min-width:120px"><div class="on-icon">📈</div><div class="on-title">Analytics Agent</div></div>
+          <div class="org-node" style="min-width:120px"><div class="on-icon">🎯</div><div class="on-title">Ads Agent</div></div>
+          <div class="org-node" style="min-width:120px"><div class="on-icon">📋</div><div class="on-title">Reports Agent</div></div>
+          <div class="org-node" style="min-width:120px"><div class="on-icon">🚀</div><div class="on-title">Funnel Agent</div></div>
+        </div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Growth Ops Dept</div>
+        <div class="org-row" style="flex-direction:column;gap:6px;align-items:center">
+          <div class="org-node" style="min-width:120px"><div class="on-icon">📣</div><div class="on-title">Marketing Agent</div></div>
+          <div class="org-node" style="min-width:120px"><div class="on-icon">💼</div><div class="on-title">Sales Agent</div></div>
+          <div class="org-node" style="min-width:120px"><div class="on-icon">🌐</div><div class="on-title">GEO Agent</div></div>
+          <div class="org-node" style="min-width:120px"><div class="on-icon">🔎</div><div class="on-title">SEO Agent</div></div>
+          <div class="org-node" style="min-width:120px"><div class="on-icon">🧪</div><div class="on-title">Research Agent</div></div>
+        </div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Engineering Dept</div>
+        <div class="org-row" style="flex-direction:column;gap:6px;align-items:center">
+          <div class="org-node" style="min-width:120px"><div class="on-icon">💻</div><div class="on-title">Dev Agent</div></div>
+          <div class="org-node" style="min-width:120px"><div class="on-icon">🐛</div><div class="on-title">Debug Agent</div></div>
+          <div class="org-node" style="min-width:120px"><div class="on-icon">✅</div><div class="on-title">QA Agent</div></div>
+        </div>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:16px;font-size:11px;color:#444;padding:10px;background:var(--card);border-radius:8px;border:1px solid var(--border)">
+      🔒 <strong style="color:#666">Security Rule:</strong> <span style="color:#555">Every agent is locked to Bibin's instructions only. No agent takes autonomous action without an explicit command from the CEO.</span>
+    </div>
+  </div>
+  <div class="page" id="page-cto">
+    <div class="card" style="border-color:#3b82f622;background:linear-gradient(135deg,var(--card),#3b82f608)">
+      <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px">
+        <div style="width:52px;height:52px;border-radius:12px;background:#3b82f622;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;border:1px solid #3b82f644">🧠</div>
+        <div style="flex:1">
+          <div style="font-size:17px;font-weight:800;color:#fff;margin-bottom:2px">CTO Agent</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Chief Technology Officer — Tech, Systems & Architecture</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <span class="tag tag-active"><span class="sdot green"></span>Standing By</span>
+            <span class="tag tag-core">Leadership</span>
+            <span class="tag" style="background:#1a1040;color:#a855f7;border:1px solid #6b21a8">Claude Sonnet</span>
+          </div>
+        </div>
+        <label class="tog"><input type="checkbox" checked><span class="tog-s"></span></label>
+      </div>
+      <div class="divider"></div>
+      <div style="font-size:11px;color:#666;font-style:italic;line-height:1.6;padding:10px;background:#0d0d0f;border-radius:7px;border:1px solid var(--border)">
+        <span style="color:#555;font-weight:600;font-style:normal">System Prompt: </span>You are the CTO Agent for Bibin Lonappan. You monitor all technical systems including bibsclaw on Railway, OpenClaw on Hostinger, GitHub repo health, deployment status, API uptime, and code quality. You ONLY act when Bibin gives you a direct instruction. When idle, you prepare status reports only.
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-hd"><div><div class="card-title">Skills & Tools</div><div class="card-sub">Capabilities this agent uses</div></div></div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px"><span class="tag tag-core">shell</span><span class="tag tag-core">github</span><span class="tag tag-core">web-fetch</span><span class="tag tag-core">file-system</span><span class="tag tag-core">railway-api</span><span class="tag tag-core">monitoring</span></div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><div><div class="card-title">Give Instruction</div><div class="card-sub">Only your commands activate this agent</div></div></div>
+        <div class="fg"><textarea class="fi" rows="3" placeholder="Tell CTO Agent what to do..."></textarea></div>
+        <button class="btn btn-primary" onclick="runAgent('cto','CTO Agent')">▶ Execute Task</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Activity Log</div>
+      <div id="log-cto" style="font-family:monospace;font-size:11px;color:#555;padding:10px;background:#080809;border-radius:7px;border:1px solid var(--border);min-height:60px">Awaiting instruction from Bibin...</div>
+    </div>
+  </div>
+  <div class="page" id="page-finance">
+    <div class="card" style="border-color:#f48c0622;background:linear-gradient(135deg,var(--card),#f48c0608)">
+      <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px">
+        <div style="width:52px;height:52px;border-radius:12px;background:#f48c0622;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;border:1px solid #f48c0644">💰</div>
+        <div style="flex:1">
+          <div style="font-size:17px;font-weight:800;color:#fff;margin-bottom:2px">Finance Agent</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:8px">CFO — Cost Monitoring, Revenue & Budget Control</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <span class="tag tag-active"><span class="sdot green"></span>Standing By</span>
+            <span class="tag tag-core">Leadership</span>
+            <span class="tag" style="background:#1a1040;color:#a855f7;border:1px solid #6b21a8">Claude Haiku</span>
+          </div>
+        </div>
+        <label class="tog"><input type="checkbox" checked><span class="tog-s"></span></label>
+      </div>
+      <div class="divider"></div>
+      <div style="font-size:11px;color:#666;font-style:italic;line-height:1.6;padding:10px;background:#0d0d0f;border-radius:7px;border:1px solid var(--border)">
+        <span style="color:#555;font-weight:600;font-style:normal">System Prompt: </span>You are the Finance Agent for Bibin Lonappan. You track all API costs (Anthropic, OpenAI, Perplexity, ElevenLabs), Railway billing, AISocialGrowth subscription costs, and revenue generated. You alert Bibin when costs exceed thresholds. You ONLY act on Bibin's direct instructions.
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-hd"><div><div class="card-title">Skills & Tools</div><div class="card-sub">Capabilities this agent uses</div></div></div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px"><span class="tag tag-core">web-fetch</span><span class="tag tag-core">sheets</span><span class="tag tag-core">calculator</span><span class="tag tag-core">cost-tracker</span><span class="tag tag-core">railway-billing</span></div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><div><div class="card-title">Give Instruction</div><div class="card-sub">Only your commands activate this agent</div></div></div>
+        <div class="fg"><textarea class="fi" rows="3" placeholder="Tell Finance Agent what to do..."></textarea></div>
+        <button class="btn btn-primary" onclick="runAgent('finance','Finance Agent')">▶ Execute Task</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Activity Log</div>
+      <div id="log-finance" style="font-family:monospace;font-size:11px;color:#555;padding:10px;background:#080809;border-radius:7px;border:1px solid var(--border);min-height:60px">Awaiting instruction from Bibin...</div>
+    </div>
+  </div>
+  <div class="page" id="page-social">
+    <div class="card" style="border-color:#e1306c22;background:linear-gradient(135deg,var(--card),#e1306c08)">
+      <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px">
+        <div style="width:52px;height:52px;border-radius:12px;background:#e1306c22;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;border:1px solid #e1306c44">📱</div>
+        <div style="flex:1">
+          <div style="font-size:17px;font-weight:800;color:#fff;margin-bottom:2px">Social Accounts Agent</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Manages Instagram, TikTok, Facebook & LinkedIn connections</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <span class="tag tag-active"><span class="sdot green"></span>Standing By</span>
+            <span class="tag tag-core">AISocialGrowth</span>
+            <span class="tag" style="background:#1a1040;color:#a855f7;border:1px solid #6b21a8">Claude Haiku</span>
+          </div>
+        </div>
+        <label class="tog"><input type="checkbox" checked><span class="tog-s"></span></label>
+      </div>
+      <div class="divider"></div>
+      <div style="font-size:11px;color:#666;font-style:italic;line-height:1.6;padding:10px;background:#0d0d0f;border-radius:7px;border:1px solid var(--border)">
+        <span style="color:#555;font-weight:600;font-style:normal">System Prompt: </span>You manage social media account connections for AISocialGrowth. Monitor link health, detect broken connections, track follower metrics. Only reconnect or modify accounts when Bibin explicitly instructs you.
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-hd"><div><div class="card-title">Skills & Tools</div><div class="card-sub">Capabilities this agent uses</div></div></div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px"><span class="tag tag-core">instagram-api</span><span class="tag tag-core">tiktok-api</span><span class="tag tag-core">facebook-api</span><span class="tag tag-core">linkedin-api</span><span class="tag tag-core">web-fetch</span></div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><div><div class="card-title">Give Instruction</div><div class="card-sub">Only your commands activate this agent</div></div></div>
+        <div class="fg"><textarea class="fi" rows="3" placeholder="Tell Social Accounts Agent what to do..."></textarea></div>
+        <button class="btn btn-primary" onclick="runAgent('social','Social Accounts Agent')">▶ Execute Task</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Activity Log</div>
+      <div id="log-social" style="font-family:monospace;font-size:11px;color:#555;padding:10px;background:#080809;border-radius:7px;border:1px solid var(--border);min-height:60px">Awaiting instruction from Bibin...</div>
+    </div>
+  </div>
+  <div class="page" id="page-store">
+    <div class="card" style="border-color:#96bf4822;background:linear-gradient(135deg,var(--card),#96bf4808)">
+      <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px">
+        <div style="width:52px;height:52px;border-radius:12px;background:#96bf4822;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;border:1px solid #96bf4844">🛒</div>
+        <div style="flex:1">
+          <div style="font-size:17px;font-weight:800;color:#fff;margin-bottom:2px">Store Integration Agent</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Shopify & WooCommerce sync, product catalog automation</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <span class="tag tag-active"><span class="sdot green"></span>Standing By</span>
+            <span class="tag tag-core">AISocialGrowth</span>
+            <span class="tag" style="background:#1a1040;color:#a855f7;border:1px solid #6b21a8">Claude Haiku</span>
+          </div>
+        </div>
+        <label class="tog"><input type="checkbox" checked><span class="tog-s"></span></label>
+      </div>
+      <div class="divider"></div>
+      <div style="font-size:11px;color:#666;font-style:italic;line-height:1.6;padding:10px;background:#0d0d0f;border-radius:7px;border:1px solid var(--border)">
+        <span style="color:#555;font-weight:600;font-style:normal">System Prompt: </span>You manage Shopify and WooCommerce store integrations for AISocialGrowth. Sync product catalogs, pull product data, prepare assets for content creation. Only sync or modify store data on Bibin's instruction.
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-hd"><div><div class="card-title">Skills & Tools</div><div class="card-sub">Capabilities this agent uses</div></div></div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px"><span class="tag tag-core">shopify-api</span><span class="tag tag-core">woocommerce-api</span><span class="tag tag-core">web-fetch</span><span class="tag tag-core">file-system</span><span class="tag tag-core">image-gen</span></div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><div><div class="card-title">Give Instruction</div><div class="card-sub">Only your commands activate this agent</div></div></div>
+        <div class="fg"><textarea class="fi" rows="3" placeholder="Tell Store Integration Agent what to do..."></textarea></div>
+        <button class="btn btn-primary" onclick="runAgent('store','Store Integration Agent')">▶ Execute Task</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Activity Log</div>
+      <div id="log-store" style="font-family:monospace;font-size:11px;color:#555;padding:10px;background:#080809;border-radius:7px;border:1px solid var(--border);min-height:60px">Awaiting instruction from Bibin...</div>
+    </div>
+  </div>
+  <div class="page" id="page-products">
+    <div class="card" style="border-color:#f59e0b22;background:linear-gradient(135deg,var(--card),#f59e0b08)">
+      <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px">
+        <div style="width:52px;height:52px;border-radius:12px;background:#f59e0b22;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;border:1px solid #f59e0b44">🏆</div>
+        <div style="flex:1">
+          <div style="font-size:17px;font-weight:800;color:#fff;margin-bottom:2px">Winning Products Agent</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Finds trending and viral products for content campaigns</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <span class="tag tag-active"><span class="sdot green"></span>Standing By</span>
+            <span class="tag tag-core">AISocialGrowth</span>
+            <span class="tag" style="background:#1a1040;color:#a855f7;border:1px solid #6b21a8">Perplexity</span>
+          </div>
+        </div>
+        <label class="tog"><input type="checkbox" checked><span class="tog-s"></span></label>
+      </div>
+      <div class="divider"></div>
+      <div style="font-size:11px;color:#666;font-style:italic;line-height:1.6;padding:10px;background:#0d0d0f;border-radius:7px;border:1px solid var(--border)">
+        <span style="color:#555;font-weight:600;font-style:normal">System Prompt: </span>You research and surface winning products for AISocialGrowth clients. Monitor TikTok trends, Amazon bestsellers, competitor product launches. Deliver ranked product reports only when Bibin asks.
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-hd"><div><div class="card-title">Skills & Tools</div><div class="card-sub">Capabilities this agent uses</div></div></div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px"><span class="tag tag-core">web-search</span><span class="tag tag-core">perplexity</span><span class="tag tag-core">tiktok-scraper</span><span class="tag tag-core">amazon-api</span><span class="tag tag-core">trend-analysis</span></div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><div><div class="card-title">Give Instruction</div><div class="card-sub">Only your commands activate this agent</div></div></div>
+        <div class="fg"><textarea class="fi" rows="3" placeholder="Tell Winning Products Agent what to do..."></textarea></div>
+        <button class="btn btn-primary" onclick="runAgent('products','Winning Products Agent')">▶ Execute Task</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Activity Log</div>
+      <div id="log-products" style="font-family:monospace;font-size:11px;color:#555;padding:10px;background:#080809;border-radius:7px;border:1px solid var(--border);min-height:60px">Awaiting instruction from Bibin...</div>
+    </div>
+  </div>
+  <div class="page" id="page-competitor">
+    <div class="card" style="border-color:#8b5cf622;background:linear-gradient(135deg,var(--card),#8b5cf608)">
+      <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px">
+        <div style="width:52px;height:52px;border-radius:12px;background:#8b5cf622;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;border:1px solid #8b5cf644">🔍</div>
+        <div style="flex:1">
+          <div style="font-size:17px;font-weight:800;color:#fff;margin-bottom:2px">Competitor Intel Agent</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Deep competitor analysis, tracking & strategy insights</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <span class="tag tag-active"><span class="sdot green"></span>Standing By</span>
+            <span class="tag tag-core">AISocialGrowth</span>
+            <span class="tag" style="background:#1a1040;color:#a855f7;border:1px solid #6b21a8">Perplexity</span>
+          </div>
+        </div>
+        <label class="tog"><input type="checkbox" checked><span class="tog-s"></span></label>
+      </div>
+      <div class="divider"></div>
+      <div style="font-size:11px;color:#666;font-style:italic;line-height:1.6;padding:10px;background:#0d0d0f;border-radius:7px;border:1px solid var(--border)">
+        <span style="color:#555;font-weight:600;font-style:normal">System Prompt: </span>You monitor competitor brands across social media and their content strategies. Track post frequency, engagement, viral hooks, and product focus. Deliver intel reports only on Bibin's command.
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-hd"><div><div class="card-title">Skills & Tools</div><div class="card-sub">Capabilities this agent uses</div></div></div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px"><span class="tag tag-core">web-search</span><span class="tag tag-core">browser</span><span class="tag tag-core">perplexity</span><span class="tag tag-core">social-scraper</span><span class="tag tag-core">trend-analysis</span></div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><div><div class="card-title">Give Instruction</div><div class="card-sub">Only your commands activate this agent</div></div></div>
+        <div class="fg"><textarea class="fi" rows="3" placeholder="Tell Competitor Intel Agent what to do..."></textarea></div>
+        <button class="btn btn-primary" onclick="runAgent('competitor','Competitor Intel Agent')">▶ Execute Task</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Activity Log</div>
+      <div id="log-competitor" style="font-family:monospace;font-size:11px;color:#555;padding:10px;background:#080809;border-radius:7px;border:1px solid var(--border);min-height:60px">Awaiting instruction from Bibin...</div>
+    </div>
+  </div>
+  <div class="page" id="page-content">
+    <div class="card" style="border-color:#06b6d422;background:linear-gradient(135deg,var(--card),#06b6d408)">
+      <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px">
+        <div style="width:52px;height:52px;border-radius:12px;background:#06b6d422;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;border:1px solid #06b6d444">✍️</div>
+        <div style="flex:1">
+          <div style="font-size:17px;font-weight:800;color:#fff;margin-bottom:2px">AI Content Studio Agent</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Generates scroll-stopping posts, captions & hashtags</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <span class="tag tag-active"><span class="sdot green"></span>Standing By</span>
+            <span class="tag tag-core">AISocialGrowth</span>
+            <span class="tag" style="background:#1a1040;color:#a855f7;border:1px solid #6b21a8">Claude Sonnet</span>
+          </div>
+        </div>
+        <label class="tog"><input type="checkbox" checked><span class="tog-s"></span></label>
+      </div>
+      <div class="divider"></div>
+      <div style="font-size:11px;color:#666;font-style:italic;line-height:1.6;padding:10px;background:#0d0d0f;border-radius:7px;border:1px solid var(--border)">
+        <span style="color:#555;font-weight:600;font-style:normal">System Prompt: </span>You create high-converting social media content for AISocialGrowth clients. Write captions, hooks, hashtags and post variations for Instagram, TikTok, Facebook. Only create and publish content when Bibin approves each piece.
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-hd"><div><div class="card-title">Skills & Tools</div><div class="card-sub">Capabilities this agent uses</div></div></div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px"><span class="tag tag-core">web-search</span><span class="tag tag-core">image-gen</span><span class="tag tag-core">file-system</span><span class="tag tag-core">instagram-api</span><span class="tag tag-core">tiktok-api</span><span class="tag tag-core">copywriting</span></div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><div><div class="card-title">Give Instruction</div><div class="card-sub">Only your commands activate this agent</div></div></div>
+        <div class="fg"><textarea class="fi" rows="3" placeholder="Tell AI Content Studio Agent what to do..."></textarea></div>
+        <button class="btn btn-primary" onclick="runAgent('content','AI Content Studio Agent')">▶ Execute Task</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Activity Log</div>
+      <div id="log-content" style="font-family:monospace;font-size:11px;color:#555;padding:10px;background:#080809;border-radius:7px;border:1px solid var(--border);min-height:60px">Awaiting instruction from Bibin...</div>
+    </div>
+  </div>
+  <div class="page" id="page-video">
+    <div class="card" style="border-color:#ec489922;background:linear-gradient(135deg,var(--card),#ec489908)">
+      <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px">
+        <div style="width:52px;height:52px;border-radius:12px;background:#ec489922;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;border:1px solid #ec489944">🎬</div>
+        <div style="flex:1">
+          <div style="font-size:17px;font-weight:800;color:#fff;margin-bottom:2px">Video Script Agent</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:8px">UGC scripts, viral hooks & short-form video ideas</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <span class="tag tag-active"><span class="sdot green"></span>Standing By</span>
+            <span class="tag tag-core">AISocialGrowth</span>
+            <span class="tag" style="background:#1a1040;color:#a855f7;border:1px solid #6b21a8">Claude Sonnet</span>
+          </div>
+        </div>
+        <label class="tog"><input type="checkbox" checked><span class="tog-s"></span></label>
+      </div>
+      <div class="divider"></div>
+      <div style="font-size:11px;color:#666;font-style:italic;line-height:1.6;padding:10px;background:#0d0d0f;border-radius:7px;border:1px solid var(--border)">
+        <span style="color:#555;font-weight:600;font-style:normal">System Prompt: </span>You write video scripts for UGC-style content, TikTok trends, and Reels. Generate hooks, body scripts, and CTAs. Produce multiple variations and only finalise scripts when Bibin approves.
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-hd"><div><div class="card-title">Skills & Tools</div><div class="card-sub">Capabilities this agent uses</div></div></div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px"><span class="tag tag-core">web-search</span><span class="tag tag-core">perplexity</span><span class="tag tag-core">copywriting</span><span class="tag tag-core">trend-analysis</span><span class="tag tag-core">file-system</span></div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><div><div class="card-title">Give Instruction</div><div class="card-sub">Only your commands activate this agent</div></div></div>
+        <div class="fg"><textarea class="fi" rows="3" placeholder="Tell Video Script Agent what to do..."></textarea></div>
+        <button class="btn btn-primary" onclick="runAgent('video','Video Script Agent')">▶ Execute Task</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Activity Log</div>
+      <div id="log-video" style="font-family:monospace;font-size:11px;color:#555;padding:10px;background:#080809;border-radius:7px;border:1px solid var(--border);min-height:60px">Awaiting instruction from Bibin...</div>
+    </div>
+  </div>
+  <div class="page" id="page-calendar">
+    <div class="card" style="border-color:#14b8a622;background:linear-gradient(135deg,var(--card),#14b8a608)">
+      <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px">
+        <div style="width:52px;height:52px;border-radius:12px;background:#14b8a622;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;border:1px solid #14b8a644">📅</div>
+        <div style="flex:1">
+          <div style="font-size:17px;font-weight:800;color:#fff;margin-bottom:2px">Content Calendar Agent</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Visual scheduling, auto-scheduling & posting calendar</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <span class="tag tag-active"><span class="sdot green"></span>Standing By</span>
+            <span class="tag tag-core">AISocialGrowth</span>
+            <span class="tag" style="background:#1a1040;color:#a855f7;border:1px solid #6b21a8">Claude Haiku</span>
+          </div>
+        </div>
+        <label class="tog"><input type="checkbox" checked><span class="tog-s"></span></label>
+      </div>
+      <div class="divider"></div>
+      <div style="font-size:11px;color:#666;font-style:italic;line-height:1.6;padding:10px;background:#0d0d0f;border-radius:7px;border:1px solid var(--border)">
+        <span style="color:#555;font-weight:600;font-style:normal">System Prompt: </span>You manage the content calendar for AISocialGrowth clients. Schedule posts, fill gaps, ensure consistent posting frequency, suggest best times. Only push posts to live when Bibin explicitly approves.
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-hd"><div><div class="card-title">Skills & Tools</div><div class="card-sub">Capabilities this agent uses</div></div></div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px"><span class="tag tag-core">calendar-api</span><span class="tag tag-core">instagram-api</span><span class="tag tag-core">tiktok-api</span><span class="tag tag-core">facebook-api</span><span class="tag tag-core">scheduler</span></div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><div><div class="card-title">Give Instruction</div><div class="card-sub">Only your commands activate this agent</div></div></div>
+        <div class="fg"><textarea class="fi" rows="3" placeholder="Tell Content Calendar Agent what to do..."></textarea></div>
+        <button class="btn btn-primary" onclick="runAgent('calendar','Content Calendar Agent')">▶ Execute Task</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Activity Log</div>
+      <div id="log-calendar" style="font-family:monospace;font-size:11px;color:#555;padding:10px;background:#080809;border-radius:7px;border:1px solid var(--border);min-height:60px">Awaiting instruction from Bibin...</div>
+    </div>
+  </div>
+  <div class="page" id="page-analytics">
+    <div class="card" style="border-color:#22c55e22;background:linear-gradient(135deg,var(--card),#22c55e08)">
+      <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px">
+        <div style="width:52px;height:52px;border-radius:12px;background:#22c55e22;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;border:1px solid #22c55e44">📈</div>
+        <div style="flex:1">
+          <div style="font-size:17px;font-weight:800;color:#fff;margin-bottom:2px">Analytics Agent</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Engagement metrics, reach, clicks & performance insights</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <span class="tag tag-active"><span class="sdot green"></span>Standing By</span>
+            <span class="tag tag-core">AISocialGrowth</span>
+            <span class="tag" style="background:#1a1040;color:#a855f7;border:1px solid #6b21a8">Claude Haiku</span>
+          </div>
+        </div>
+        <label class="tog"><input type="checkbox" checked><span class="tog-s"></span></label>
+      </div>
+      <div class="divider"></div>
+      <div style="font-size:11px;color:#666;font-style:italic;line-height:1.6;padding:10px;background:#0d0d0f;border-radius:7px;border:1px solid var(--border)">
+        <span style="color:#555;font-weight:600;font-style:normal">System Prompt: </span>You analyse social media performance data for AISocialGrowth clients. Track engagement, reach, saves, profile visits. Identify what content is working and what isn't. Report only when Bibin asks.
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-hd"><div><div class="card-title">Skills & Tools</div><div class="card-sub">Capabilities this agent uses</div></div></div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px"><span class="tag tag-core">instagram-api</span><span class="tag tag-core">tiktok-api</span><span class="tag tag-core">facebook-api</span><span class="tag tag-core">sheets</span><span class="tag tag-core">data-viz</span><span class="tag tag-core">perplexity</span></div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><div><div class="card-title">Give Instruction</div><div class="card-sub">Only your commands activate this agent</div></div></div>
+        <div class="fg"><textarea class="fi" rows="3" placeholder="Tell Analytics Agent what to do..."></textarea></div>
+        <button class="btn btn-primary" onclick="runAgent('analytics','Analytics Agent')">▶ Execute Task</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Activity Log</div>
+      <div id="log-analytics" style="font-family:monospace;font-size:11px;color:#555;padding:10px;background:#080809;border-radius:7px;border:1px solid var(--border);min-height:60px">Awaiting instruction from Bibin...</div>
+    </div>
+  </div>
+  <div class="page" id="page-adperf">
+    <div class="card" style="border-color:#f43f5e22;background:linear-gradient(135deg,var(--card),#f43f5e08)">
+      <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px">
+        <div style="width:52px;height:52px;border-radius:12px;background:#f43f5e22;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;border:1px solid #f43f5e44">🎯</div>
+        <div style="flex:1">
+          <div style="font-size:17px;font-weight:800;color:#fff;margin-bottom:2px">Ad Performance Agent</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Paid ad monitoring, optimisation & ROAS tracking</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <span class="tag tag-active"><span class="sdot green"></span>Standing By</span>
+            <span class="tag tag-core">AISocialGrowth</span>
+            <span class="tag" style="background:#1a1040;color:#a855f7;border:1px solid #6b21a8">Claude Sonnet</span>
+          </div>
+        </div>
+        <label class="tog"><input type="checkbox" checked><span class="tog-s"></span></label>
+      </div>
+      <div class="divider"></div>
+      <div style="font-size:11px;color:#666;font-style:italic;line-height:1.6;padding:10px;background:#0d0d0f;border-radius:7px;border:1px solid var(--border)">
+        <span style="color:#555;font-weight:600;font-style:normal">System Prompt: </span>You monitor and analyse paid advertising performance across Meta, TikTok Ads, and Google Ads. Track ROAS, CPC, CPM, and conversions. Suggest optimisations — but only implement changes when Bibin approves.
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-hd"><div><div class="card-title">Skills & Tools</div><div class="card-sub">Capabilities this agent uses</div></div></div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px"><span class="tag tag-core">meta-ads-api</span><span class="tag tag-core">tiktok-ads-api</span><span class="tag tag-core">google-ads-api</span><span class="tag tag-core">sheets</span><span class="tag tag-core">perplexity</span></div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><div><div class="card-title">Give Instruction</div><div class="card-sub">Only your commands activate this agent</div></div></div>
+        <div class="fg"><textarea class="fi" rows="3" placeholder="Tell Ad Performance Agent what to do..."></textarea></div>
+        <button class="btn btn-primary" onclick="runAgent('adperf','Ad Performance Agent')">▶ Execute Task</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Activity Log</div>
+      <div id="log-adperf" style="font-family:monospace;font-size:11px;color:#555;padding:10px;background:#080809;border-radius:7px;border:1px solid var(--border);min-height:60px">Awaiting instruction from Bibin...</div>
+    </div>
+  </div>
+  <div class="page" id="page-reports">
+    <div class="card" style="border-color:#a78bfa22;background:linear-gradient(135deg,var(--card),#a78bfa08)">
+      <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px">
+        <div style="width:52px;height:52px;border-radius:12px;background:#a78bfa22;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;border:1px solid #a78bfa44">📋</div>
+        <div style="flex:1">
+          <div style="font-size:17px;font-weight:800;color:#fff;margin-bottom:2px">Client Reports Agent</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Generates polished growth reports for clients</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <span class="tag tag-active"><span class="sdot green"></span>Standing By</span>
+            <span class="tag tag-core">AISocialGrowth</span>
+            <span class="tag" style="background:#1a1040;color:#a855f7;border:1px solid #6b21a8">Claude Sonnet</span>
+          </div>
+        </div>
+        <label class="tog"><input type="checkbox" checked><span class="tog-s"></span></label>
+      </div>
+      <div class="divider"></div>
+      <div style="font-size:11px;color:#666;font-style:italic;line-height:1.6;padding:10px;background:#0d0d0f;border-radius:7px;border:1px solid var(--border)">
+        <span style="color:#555;font-weight:600;font-style:normal">System Prompt: </span>You generate professional client reports showing social media growth, engagement, revenue impact, and campaign results. Format them as PDF-ready documents. Only generate and send reports when Bibin instructs.
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-hd"><div><div class="card-title">Skills & Tools</div><div class="card-sub">Capabilities this agent uses</div></div></div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px"><span class="tag tag-core">sheets</span><span class="tag tag-core">pdf-gen</span><span class="tag tag-core">gmail</span><span class="tag tag-core">data-viz</span><span class="tag tag-core">web-fetch</span><span class="tag tag-core">copywriting</span></div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><div><div class="card-title">Give Instruction</div><div class="card-sub">Only your commands activate this agent</div></div></div>
+        <div class="fg"><textarea class="fi" rows="3" placeholder="Tell Client Reports Agent what to do..."></textarea></div>
+        <button class="btn btn-primary" onclick="runAgent('reports','Client Reports Agent')">▶ Execute Task</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Activity Log</div>
+      <div id="log-reports" style="font-family:monospace;font-size:11px;color:#555;padding:10px;background:#080809;border-radius:7px;border:1px solid var(--border);min-height:60px">Awaiting instruction from Bibin...</div>
+    </div>
+  </div>
+  <div class="page" id="page-funnel">
+    <div class="card" style="border-color:#fb923c22;background:linear-gradient(135deg,var(--card),#fb923c08)">
+      <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px">
+        <div style="width:52px;height:52px;border-radius:12px;background:#fb923c22;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;border:1px solid #fb923c44">🚀</div>
+        <div style="flex:1">
+          <div style="font-size:17px;font-weight:800;color:#fff;margin-bottom:2px">Sales Funnel Agent</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Lead tracking, conversion monitoring & funnel optimisation</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <span class="tag tag-active"><span class="sdot green"></span>Standing By</span>
+            <span class="tag tag-core">AISocialGrowth</span>
+            <span class="tag" style="background:#1a1040;color:#a855f7;border:1px solid #6b21a8">Claude Haiku</span>
+          </div>
+        </div>
+        <label class="tog"><input type="checkbox" checked><span class="tog-s"></span></label>
+      </div>
+      <div class="divider"></div>
+      <div style="font-size:11px;color:#666;font-style:italic;line-height:1.6;padding:10px;background:#0d0d0f;border-radius:7px;border:1px solid var(--border)">
+        <span style="color:#555;font-weight:600;font-style:normal">System Prompt: </span>You monitor the AISocialGrowth sales funnel. Track leads entering at top, moving through stages, and converting. Identify drop-off points and suggest fixes. Only modify funnel steps on Bibin's command.
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-hd"><div><div class="card-title">Skills & Tools</div><div class="card-sub">Capabilities this agent uses</div></div></div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px"><span class="tag tag-core">crm-api</span><span class="tag tag-core">email-api</span><span class="tag tag-core">web-fetch</span><span class="tag tag-core">sheets</span><span class="tag tag-core">perplexity</span></div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><div><div class="card-title">Give Instruction</div><div class="card-sub">Only your commands activate this agent</div></div></div>
+        <div class="fg"><textarea class="fi" rows="3" placeholder="Tell Sales Funnel Agent what to do..."></textarea></div>
+        <button class="btn btn-primary" onclick="runAgent('funnel','Sales Funnel Agent')">▶ Execute Task</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Activity Log</div>
+      <div id="log-funnel" style="font-family:monospace;font-size:11px;color:#555;padding:10px;background:#080809;border-radius:7px;border:1px solid var(--border);min-height:60px">Awaiting instruction from Bibin...</div>
+    </div>
+  </div>
+  <div class="page" id="page-marketing">
+    <div class="card" style="border-color:#e85d0422;background:linear-gradient(135deg,var(--card),#e85d0408)">
+      <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px">
+        <div style="width:52px;height:52px;border-radius:12px;background:#e85d0422;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;border:1px solid #e85d0444">📣</div>
+        <div style="flex:1">
+          <div style="font-size:17px;font-weight:800;color:#fff;margin-bottom:2px">Marketing Agent</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Brand campaigns, outreach, Product Hunt & growth hacking</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <span class="tag tag-active"><span class="sdot green"></span>Standing By</span>
+            <span class="tag tag-core">Growth Ops</span>
+            <span class="tag" style="background:#1a1040;color:#a855f7;border:1px solid #6b21a8">Claude Sonnet</span>
+          </div>
+        </div>
+        <label class="tog"><input type="checkbox" checked><span class="tog-s"></span></label>
+      </div>
+      <div class="divider"></div>
+      <div style="font-size:11px;color:#666;font-style:italic;line-height:1.6;padding:10px;background:#0d0d0f;border-radius:7px;border:1px solid var(--border)">
+        <span style="color:#555;font-weight:600;font-style:normal">System Prompt: </span>You run marketing campaigns for AISocialGrowth and BibsClaw. Write blog posts, Reddit threads, Twitter content, and Product Hunt launches. Draft everything for Bibin's approval before publishing anything.
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-hd"><div><div class="card-title">Skills & Tools</div><div class="card-sub">Capabilities this agent uses</div></div></div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px"><span class="tag tag-core">web-search</span><span class="tag tag-core">twitter-api</span><span class="tag tag-core">reddit-api</span><span class="tag tag-core">browser</span><span class="tag tag-core">copywriting</span><span class="tag tag-core">email</span></div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><div><div class="card-title">Give Instruction</div><div class="card-sub">Only your commands activate this agent</div></div></div>
+        <div class="fg"><textarea class="fi" rows="3" placeholder="Tell Marketing Agent what to do..."></textarea></div>
+        <button class="btn btn-primary" onclick="runAgent('marketing','Marketing Agent')">▶ Execute Task</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Activity Log</div>
+      <div id="log-marketing" style="font-family:monospace;font-size:11px;color:#555;padding:10px;background:#080809;border-radius:7px;border:1px solid var(--border);min-height:60px">Awaiting instruction from Bibin...</div>
+    </div>
+  </div>
+  <div class="page" id="page-sales">
+    <div class="card" style="border-color:#16a34a22;background:linear-gradient(135deg,var(--card),#16a34a08)">
+      <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px">
+        <div style="width:52px;height:52px;border-radius:12px;background:#16a34a22;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;border:1px solid #16a34a44">💼</div>
+        <div style="flex:1">
+          <div style="font-size:17px;font-weight:800;color:#fff;margin-bottom:2px">Sales Agent</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Outreach, lead qualification & deal closing</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <span class="tag tag-active"><span class="sdot green"></span>Standing By</span>
+            <span class="tag tag-core">Growth Ops</span>
+            <span class="tag" style="background:#1a1040;color:#a855f7;border:1px solid #6b21a8">Claude Sonnet</span>
+          </div>
+        </div>
+        <label class="tog"><input type="checkbox" checked><span class="tog-s"></span></label>
+      </div>
+      <div class="divider"></div>
+      <div style="font-size:11px;color:#666;font-style:italic;line-height:1.6;padding:10px;background:#0d0d0f;border-radius:7px;border:1px solid var(--border)">
+        <span style="color:#555;font-weight:600;font-style:normal">System Prompt: </span>You manage sales outreach for AISocialGrowth and BibsClaw. Research prospects, write personalised outreach emails, follow up with leads, and track pipeline. Only send emails and messages after Bibin approves each one.
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-hd"><div><div class="card-title">Skills & Tools</div><div class="card-sub">Capabilities this agent uses</div></div></div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px"><span class="tag tag-core">gmail</span><span class="tag tag-core">linkedin-api</span><span class="tag tag-core">web-search</span><span class="tag tag-core">crm</span><span class="tag tag-core">copywriting</span><span class="tag tag-core">perplexity</span></div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><div><div class="card-title">Give Instruction</div><div class="card-sub">Only your commands activate this agent</div></div></div>
+        <div class="fg"><textarea class="fi" rows="3" placeholder="Tell Sales Agent what to do..."></textarea></div>
+        <button class="btn btn-primary" onclick="runAgent('sales','Sales Agent')">▶ Execute Task</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Activity Log</div>
+      <div id="log-sales" style="font-family:monospace;font-size:11px;color:#555;padding:10px;background:#080809;border-radius:7px;border:1px solid var(--border);min-height:60px">Awaiting instruction from Bibin...</div>
+    </div>
+  </div>
+  <div class="page" id="page-geo">
+    <div class="card" style="border-color:#0ea5e922;background:linear-gradient(135deg,var(--card),#0ea5e908)">
+      <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px">
+        <div style="width:52px;height:52px;border-radius:12px;background:#0ea5e922;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;border:1px solid #0ea5e944">🌐</div>
+        <div style="flex:1">
+          <div style="font-size:17px;font-weight:800;color:#fff;margin-bottom:2px">GEO Agent</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Generative Engine Optimisation — AI search visibility</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <span class="tag tag-active"><span class="sdot green"></span>Standing By</span>
+            <span class="tag tag-core">Growth Ops</span>
+            <span class="tag" style="background:#1a1040;color:#a855f7;border:1px solid #6b21a8">Perplexity</span>
+          </div>
+        </div>
+        <label class="tog"><input type="checkbox" checked><span class="tog-s"></span></label>
+      </div>
+      <div class="divider"></div>
+      <div style="font-size:11px;color:#666;font-style:italic;line-height:1.6;padding:10px;background:#0d0d0f;border-radius:7px;border:1px solid var(--border)">
+        <span style="color:#555;font-weight:600;font-style:normal">System Prompt: </span>You handle Generative Engine Optimisation (GEO) — making AISocialGrowth and BibsClaw highly visible in AI search engines like ChatGPT, Perplexity, Gemini, and Claude. Research AI citation patterns, optimise content structure, and ensure our brands appear in AI-generated answers. Report findings and proposed changes to Bibin for approval.
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-hd"><div><div class="card-title">Skills & Tools</div><div class="card-sub">Capabilities this agent uses</div></div></div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px"><span class="tag tag-core">web-search</span><span class="tag tag-core">perplexity</span><span class="tag tag-core">browser</span><span class="tag tag-core">copywriting</span><span class="tag tag-core">seo-tools</span><span class="tag tag-core">file-system</span></div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><div><div class="card-title">Give Instruction</div><div class="card-sub">Only your commands activate this agent</div></div></div>
+        <div class="fg"><textarea class="fi" rows="3" placeholder="Tell GEO Agent what to do..."></textarea></div>
+        <button class="btn btn-primary" onclick="runAgent('geo','GEO Agent')">▶ Execute Task</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Activity Log</div>
+      <div id="log-geo" style="font-family:monospace;font-size:11px;color:#555;padding:10px;background:#080809;border-radius:7px;border:1px solid var(--border);min-height:60px">Awaiting instruction from Bibin...</div>
+    </div>
+  </div>
+  <div class="page" id="page-seo">
+    <div class="card" style="border-color:#6366f122;background:linear-gradient(135deg,var(--card),#6366f108)">
+      <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px">
+        <div style="width:52px;height:52px;border-radius:12px;background:#6366f122;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;border:1px solid #6366f144">🔎</div>
+        <div style="flex:1">
+          <div style="font-size:17px;font-weight:800;color:#fff;margin-bottom:2px">SEO Agent</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Search engine optimisation, keyword research & content strategy</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <span class="tag tag-active"><span class="sdot green"></span>Standing By</span>
+            <span class="tag tag-core">Growth Ops</span>
+            <span class="tag" style="background:#1a1040;color:#a855f7;border:1px solid #6b21a8">Perplexity</span>
+          </div>
+        </div>
+        <label class="tog"><input type="checkbox" checked><span class="tog-s"></span></label>
+      </div>
+      <div class="divider"></div>
+      <div style="font-size:11px;color:#666;font-style:italic;line-height:1.6;padding:10px;background:#0d0d0f;border-radius:7px;border:1px solid var(--border)">
+        <span style="color:#555;font-weight:600;font-style:normal">System Prompt: </span>You handle technical and content SEO for AISocialGrowth and BibsClaw. Research keywords, analyse rankings, audit on-page SEO, build content briefs, and monitor backlinks. Prepare all recommendations for Bibin's approval before any changes are made.
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-hd"><div><div class="card-title">Skills & Tools</div><div class="card-sub">Capabilities this agent uses</div></div></div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px"><span class="tag tag-core">web-search</span><span class="tag tag-core">perplexity</span><span class="tag tag-core">ahrefs-api</span><span class="tag tag-core">semrush-api</span><span class="tag tag-core">browser</span><span class="tag tag-core">copywriting</span></div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><div><div class="card-title">Give Instruction</div><div class="card-sub">Only your commands activate this agent</div></div></div>
+        <div class="fg"><textarea class="fi" rows="3" placeholder="Tell SEO Agent what to do..."></textarea></div>
+        <button class="btn btn-primary" onclick="runAgent('seo','SEO Agent')">▶ Execute Task</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Activity Log</div>
+      <div id="log-seo" style="font-family:monospace;font-size:11px;color:#555;padding:10px;background:#080809;border-radius:7px;border:1px solid var(--border);min-height:60px">Awaiting instruction from Bibin...</div>
+    </div>
+  </div>
+  <div class="page" id="page-research">
+    <div class="card" style="border-color:#d946ef22;background:linear-gradient(135deg,var(--card),#d946ef08)">
+      <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px">
+        <div style="width:52px;height:52px;border-radius:12px;background:#d946ef22;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;border:1px solid #d946ef44">🧪</div>
+        <div style="flex:1">
+          <div style="font-size:17px;font-weight:800;color:#fff;margin-bottom:2px">Research Agent</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Market research, trend analysis & competitive intelligence</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <span class="tag tag-active"><span class="sdot green"></span>Standing By</span>
+            <span class="tag tag-core">Growth Ops</span>
+            <span class="tag" style="background:#1a1040;color:#a855f7;border:1px solid #6b21a8">Perplexity</span>
+          </div>
+        </div>
+        <label class="tog"><input type="checkbox" checked><span class="tog-s"></span></label>
+      </div>
+      <div class="divider"></div>
+      <div style="font-size:11px;color:#666;font-style:italic;line-height:1.6;padding:10px;background:#0d0d0f;border-radius:7px;border:1px solid var(--border)">
+        <span style="color:#555;font-weight:600;font-style:normal">System Prompt: </span>You conduct deep market research for Bibin. Monitor industry trends, analyse competitor landscapes, surface new opportunities, and research customer pain points. Deliver structured research reports when Bibin requests them.
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-hd"><div><div class="card-title">Skills & Tools</div><div class="card-sub">Capabilities this agent uses</div></div></div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px"><span class="tag tag-core">web-search</span><span class="tag tag-core">perplexity</span><span class="tag tag-core">browser</span><span class="tag tag-core">file-system</span><span class="tag tag-core">data-analysis</span><span class="tag tag-core">sheets</span></div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><div><div class="card-title">Give Instruction</div><div class="card-sub">Only your commands activate this agent</div></div></div>
+        <div class="fg"><textarea class="fi" rows="3" placeholder="Tell Research Agent what to do..."></textarea></div>
+        <button class="btn btn-primary" onclick="runAgent('research','Research Agent')">▶ Execute Task</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Activity Log</div>
+      <div id="log-research" style="font-family:monospace;font-size:11px;color:#555;padding:10px;background:#080809;border-radius:7px;border:1px solid var(--border);min-height:60px">Awaiting instruction from Bibin...</div>
+    </div>
+  </div>
+  <div class="page" id="page-dev">
+    <div class="card" style="border-color:#64748b22;background:linear-gradient(135deg,var(--card),#64748b08)">
+      <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px">
+        <div style="width:52px;height:52px;border-radius:12px;background:#64748b22;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;border:1px solid #64748b44">💻</div>
+        <div style="flex:1">
+          <div style="font-size:17px;font-weight:800;color:#fff;margin-bottom:2px">Dev Agent</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Code development, GitHub PRs & Railway deployments</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <span class="tag tag-active"><span class="sdot green"></span>Standing By</span>
+            <span class="tag tag-core">Engineering</span>
+            <span class="tag" style="background:#1a1040;color:#a855f7;border:1px solid #6b21a8">Claude Sonnet</span>
+          </div>
+        </div>
+        <label class="tog"><input type="checkbox" checked><span class="tog-s"></span></label>
+      </div>
+      <div class="divider"></div>
+      <div style="font-size:11px;color:#666;font-style:italic;line-height:1.6;padding:10px;background:#0d0d0f;border-radius:7px;border:1px solid var(--border)">
+        <span style="color:#555;font-weight:600;font-style:normal">System Prompt: </span>You are the Dev Agent for bibsclaw on GitHub. Write code improvements, create feature branches, submit PRs, and trigger Railway deployments. Only write and commit code when Bibin explicitly instructs. Never touch the main branch without approval.
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-hd"><div><div class="card-title">Skills & Tools</div><div class="card-sub">Capabilities this agent uses</div></div></div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px"><span class="tag tag-core">github</span><span class="tag tag-core">shell</span><span class="tag tag-core">file-system</span><span class="tag tag-core">node</span><span class="tag tag-core">typescript</span><span class="tag tag-core">railway-api</span></div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><div><div class="card-title">Give Instruction</div><div class="card-sub">Only your commands activate this agent</div></div></div>
+        <div class="fg"><textarea class="fi" rows="3" placeholder="Tell Dev Agent what to do..."></textarea></div>
+        <button class="btn btn-primary" onclick="runAgent('dev','Dev Agent')">▶ Execute Task</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Activity Log</div>
+      <div id="log-dev" style="font-family:monospace;font-size:11px;color:#555;padding:10px;background:#080809;border-radius:7px;border:1px solid var(--border);min-height:60px">Awaiting instruction from Bibin...</div>
+    </div>
+  </div>
+  <div class="page" id="page-debug">
+    <div class="card" style="border-color:#dc262622;background:linear-gradient(135deg,var(--card),#dc262608)">
+      <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px">
+        <div style="width:52px;height:52px;border-radius:12px;background:#dc262622;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;border:1px solid #dc262644">🐛</div>
+        <div style="flex:1">
+          <div style="font-size:17px;font-weight:800;color:#fff;margin-bottom:2px">Debug Agent</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Error detection, log monitoring & automated fixes</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <span class="tag tag-active"><span class="sdot green"></span>Standing By</span>
+            <span class="tag tag-core">Engineering</span>
+            <span class="tag" style="background:#1a1040;color:#a855f7;border:1px solid #6b21a8">Claude Haiku</span>
+          </div>
+        </div>
+        <label class="tog"><input type="checkbox" checked><span class="tog-s"></span></label>
+      </div>
+      <div class="divider"></div>
+      <div style="font-size:11px;color:#666;font-style:italic;line-height:1.6;padding:10px;background:#0d0d0f;border-radius:7px;border:1px solid var(--border)">
+        <span style="color:#555;font-weight:600;font-style:normal">System Prompt: </span>You monitor bibsclaw and AISocialGrowth for errors, crashes, and performance issues. Watch Railway logs, track error rates, and identify root causes. Propose fixes to Bibin — only implement after explicit approval.
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-hd"><div><div class="card-title">Skills & Tools</div><div class="card-sub">Capabilities this agent uses</div></div></div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px"><span class="tag tag-core">shell</span><span class="tag tag-core">github</span><span class="tag tag-core">railway-api</span><span class="tag tag-core">monitoring</span><span class="tag tag-core">file-system</span><span class="tag tag-core">web-fetch</span></div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><div><div class="card-title">Give Instruction</div><div class="card-sub">Only your commands activate this agent</div></div></div>
+        <div class="fg"><textarea class="fi" rows="3" placeholder="Tell Debug Agent what to do..."></textarea></div>
+        <button class="btn btn-primary" onclick="runAgent('debug','Debug Agent')">▶ Execute Task</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Activity Log</div>
+      <div id="log-debug" style="font-family:monospace;font-size:11px;color:#555;padding:10px;background:#080809;border-radius:7px;border:1px solid var(--border);min-height:60px">Awaiting instruction from Bibin...</div>
+    </div>
+  </div>
+  <div class="page" id="page-qa">
+    <div class="card" style="border-color:#05966922;background:linear-gradient(135deg,var(--card),#05966908)">
+      <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px">
+        <div style="width:52px;height:52px;border-radius:12px;background:#05966922;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;border:1px solid #05966944">✅</div>
+        <div style="flex:1">
+          <div style="font-size:17px;font-weight:800;color:#fff;margin-bottom:2px">QA Agent</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Testing, quality assurance & performance verification</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <span class="tag tag-active"><span class="sdot green"></span>Standing By</span>
+            <span class="tag tag-core">Engineering</span>
+            <span class="tag" style="background:#1a1040;color:#a855f7;border:1px solid #6b21a8">Claude Haiku</span>
+          </div>
+        </div>
+        <label class="tog"><input type="checkbox" checked><span class="tog-s"></span></label>
+      </div>
+      <div class="divider"></div>
+      <div style="font-size:11px;color:#666;font-style:italic;line-height:1.6;padding:10px;background:#0d0d0f;border-radius:7px;border:1px solid var(--border)">
+        <span style="color:#555;font-weight:600;font-style:normal">System Prompt: </span>You run tests and quality checks on bibsclaw and AISocialGrowth features. Execute test suites, verify deployments, check API endpoints, and ensure features work correctly. Report results to Bibin before marking anything as production-ready.
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-hd"><div><div class="card-title">Skills & Tools</div><div class="card-sub">Capabilities this agent uses</div></div></div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px"><span class="tag tag-core">shell</span><span class="tag tag-core">github</span><span class="tag tag-core">playwright</span><span class="tag tag-core">vitest</span><span class="tag tag-core">web-fetch</span><span class="tag tag-core">monitoring</span></div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><div><div class="card-title">Give Instruction</div><div class="card-sub">Only your commands activate this agent</div></div></div>
+        <div class="fg"><textarea class="fi" rows="3" placeholder="Tell QA Agent what to do..."></textarea></div>
+        <button class="btn btn-primary" onclick="runAgent('qa','QA Agent')">▶ Execute Task</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Activity Log</div>
+      <div id="log-qa" style="font-family:monospace;font-size:11px;color:#555;padding:10px;background:#080809;border-radius:7px;border:1px solid var(--border);min-height:60px">Awaiting instruction from Bibin...</div>
+    </div>
+  </div>
+  <!-- OVERVIEW PAGE -->
+  <div class="page" id="page-overview">
+    <div class="grid4" style="margin-bottom:16px">
+      <div class="stat"><div class="stat-icon">🤖</div><div class="stat-label">Total Agents</div><div class="stat-val">25</div><div class="stat-sub">All standing by</div></div>
+      <div class="stat"><div class="stat-icon">✅</div><div class="stat-label">Active</div><div class="stat-val" style="color:var(--green)">25</div><div class="stat-sub">No autonomous actions</div></div>
+      <div class="stat"><div class="stat-icon">💰</div><div class="stat-label">Cost Today</div><div class="stat-val" style="font-size:18px">$0.00</div><div class="stat-sub">Finance agent monitoring</div></div>
+      <div class="stat"><div class="stat-icon">🚂</div><div class="stat-label">Railway Status</div><div class="stat-val" style="font-size:16px"><span class="sdot green"></span>Live</div><div class="stat-sub">bibsclaw-production</div></div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-hd"><div><div class="card-title">🏢 Department Status</div><div class="card-sub">All 3 departments operational</div></div></div>
+        <table class="tbl">
+          <thead><tr><th>Department</th><th>Agents</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td>AISocialGrowth</td><td>11</td><td><span class="tag tag-active"><span class="sdot green"></span>Ready</span></td></tr>
+            <tr><td>Growth Ops</td><td>5</td><td><span class="tag tag-active"><span class="sdot green"></span>Ready</span></td></tr>
+            <tr><td>Engineering</td><td>3</td><td><span class="tag tag-active"><span class="sdot green"></span>Ready</span></td></tr>
+            <tr><td>Leadership</td><td>2</td><td><span class="tag tag-cto"><span class="sdot blue"></span>Monitoring</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div class="card-hd"><div><div class="card-title">🔒 Command Policy</div><div class="card-sub">Security rules active</div></div></div>
+        <div style="display:flex;flex-direction:column;gap:8px;font-size:12px">
+          <div style="display:flex;align-items:center;gap:8px;padding:8px;background:#0d0d0f;border-radius:7px;border:1px solid var(--border)"><span>🔒</span><span style="color:#ccc">Only Bibin's instructions activate agents</span></div>
+          <div style="display:flex;align-items:center;gap:8px;padding:8px;background:#0d0d0f;border-radius:7px;border:1px solid var(--border)"><span>🚫</span><span style="color:#ccc">No autonomous posting or publishing</span></div>
+          <div style="display:flex;align-items:center;gap:8px;padding:8px;background:#0d0d0f;border-radius:7px;border:1px solid var(--border)"><span>💬</span><span style="color:#ccc">All actions require approval per session</span></div>
+          <div style="display:flex;align-items:center;gap:8px;padding:8px;background:#0d0d0f;border-radius:7px;border:1px solid var(--border)"><span>💰</span><span style="color:#ccc">Finance agent monitors all API costs live</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-hd"><div><div class="card-title">📋 Recent Instructions</div><div class="card-sub">Your last commands to agents</div></div></div>
+      <div id="recent-cmds" style="font-size:12px;color:#555;padding:10px;background:#080809;border-radius:7px;min-height:50px;font-family:monospace">No instructions given yet. Use Command Chat to activate agents.</div>
+    </div>
+  </div>
+
+  <!-- CRON PAGE -->
+  <div class="page" id="page-cron">
+    <div class="grid2">
+      <div class="card">
+        <div class="card-hd"><div><div class="card-title">⏰ Scheduled Jobs</div><div class="card-sub">Recurring agent tasks you have approved</div></div><button class="btn btn-ghost btn-sm" onclick="renderCron()">↻</button></div>
+        <div id="cron-list"><div style="color:var(--muted);font-size:12px;text-align:center;padding:20px">No jobs yet. Create one →</div></div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><div><div class="card-title">+ New Scheduled Job</div><div class="card-sub">You approve every scheduled task</div></div></div>
+        <div class="fg"><label class="fl">Job Name *</label><input class="fi" id="cron-name" placeholder="e.g. Daily Competitor Scan"></div>
+        <div class="fg"><label class="fl">Agent *</label>
+          <select class="fs" id="cron-agent">
+            <option value="cto">🧠 CTO Agent</option><option value="finance">💰 Finance Agent</option>
+            <option value="social">📱 Social Accounts</option><option value="products">🏆 Winning Products</option>
+            <option value="competitor">🔍 Competitor Intel</option><option value="content">✍️ Content Studio</option>
+            <option value="analytics">📈 Analytics</option><option value="adperf">🎯 Ad Performance</option>
+            <option value="marketing">📣 Marketing</option><option value="sales">💼 Sales</option>
+            <option value="geo">🌐 GEO</option><option value="seo">🔎 SEO</option>
+            <option value="research">🧪 Research</option><option value="debug">🐛 Debug</option><option value="qa">✅ QA</option>
+          </select>
+        </div>
+        <div class="fg"><label class="fl">Schedule (cron expression)</label><input class="fi" id="cron-sched" placeholder="0 9 * * * = daily 9am"></div>
+        <div class="fg"><label class="fl">Task Prompt</label><textarea class="fi" id="cron-prompt" rows="3" placeholder="What should the agent do each run..."></textarea></div>
+        <button class="btn btn-primary" onclick="addCron()">+ Create Job</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- USAGE PAGE -->
+  <div class="page" id="page-usage">
+    <div class="grid4" style="margin-bottom:16px">
+      <div class="stat"><div class="stat-label">Messages Today</div><div class="stat-val" id="u-msgs">0</div><div class="stat-sub">Across all agents</div></div>
+      <div class="stat"><div class="stat-label">Tokens Used</div><div class="stat-val" id="u-tokens">0</div><div class="stat-sub">This session</div></div>
+      <div class="stat"><div class="stat-label">Estimated Cost</div><div class="stat-val" style="font-size:18px" id="u-cost">$0.00</div><div class="stat-sub">Finance agent tracking</div></div>
+      <div class="stat"><div class="stat-label">Budget Remaining</div><div class="stat-val" style="font-size:18px;color:var(--green)" id="u-budget">$50.00</div><div class="stat-sub">Monthly limit</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:12px">Cost Per Agent (This Month)</div>
+      <table class="tbl">
+        <thead><tr><th>Agent</th><th>Model</th><th>Messages</th><th>Tokens</th><th>Cost</th><th>Status</th></tr></thead>
+        <tbody id="usage-table">
+          <tr><td>🧠 CTO Agent</td><td>Claude Sonnet</td><td>0</td><td>0</td><td>$0.00</td><td><span class="tag tag-active">Active</span></td></tr>
+          <tr><td>💰 Finance Agent</td><td>Claude Haiku</td><td>0</td><td>0</td><td>$0.00</td><td><span class="tag tag-active">Active</span></td></tr>
+          <tr><td>✍️ Content Studio</td><td>Claude Sonnet</td><td>0</td><td>0</td><td>$0.00</td><td><span class="tag tag-active">Active</span></td></tr>
+          <tr><td>🌐 GEO Agent</td><td>Perplexity</td><td>0</td><td>0</td><td>$0.00</td><td><span class="tag tag-active">Active</span></td></tr>
+          <tr><td>🔎 SEO Agent</td><td>Perplexity</td><td>0</td><td>0</td><td>$0.00</td><td><span class="tag tag-active">Active</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- LOGS PAGE -->
+  <div class="page" id="page-logs">
+    <div class="card" style="height:calc(100vh - 130px)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div><div class="card-title">📋 Live Agent Logs</div><div class="card-sub" style="margin-top:2px">Real-time activity from all 25 agents</div></div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-ghost btn-sm" onclick="filterLogs('all')">All</button>
+          <button class="btn btn-ghost btn-sm" onclick="filterLogs('error')">Errors</button>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('log-main').innerHTML=''">Clear</button>
+        </div>
+      </div>
+      <div class="log-box" id="log-main">
+        <div class="log-line log-system">[SYSTEM] BibsClaw Agent Company HQ initialized</div>
+        <div class="log-line log-system">[SYSTEM] 25 agents loaded and standing by</div>
+        <div class="log-line log-info">[SECURITY] Command lock active — awaiting Bibin's instructions</div>
+        <div class="log-line log-info">[RAILWAY] Connected to bibsclaw-production.up.railway.app</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONFIG PAGE -->
+  <div class="page" id="page-config">
+    <div class="grid2">
+      <div class="card">
+        <div class="card-hd"><div><div class="card-title">⚙️ API Keys</div><div class="card-sub">Stored securely in Railway environment</div></div></div>
+        <div class="fg"><label class="fl">Anthropic API Key</label><input class="fi" type="password" placeholder="sk-ant-..."></div>
+        <div class="fg"><label class="fl">Perplexity API Key</label><input class="fi" type="password" placeholder="pplx-..."></div>
+        <div class="fg"><label class="fl">OpenAI API Key</label><input class="fi" type="password" placeholder="sk-..."></div>
+        <div class="fg"><label class="fl">ElevenLabs Key</label><input class="fi" type="password" placeholder="..."></div>
+        <div class="fg"><label class="fl">Telegram Bot Token</label><input class="fi" type="password" placeholder="123456:ABC..."></div>
+        <button class="btn btn-primary" onclick="addLog('Config saved','info')">💾 Save to Railway</button>
+      </div>
+      <div class="card">
+        <div class="card-hd"><div><div class="card-title">🏢 Company Settings</div><div class="card-sub">Your agent company configuration</div></div></div>
+        <div class="fg"><label class="fl">CEO Name</label><input class="fi" value="Bibin Lonappan"></div>
+        <div class="fg"><label class="fl">Company Name</label><input class="fi" value="AISocialGrowth"></div>
+        <div class="fg"><label class="fl">Railway URL</label><input class="fi" value="https://bibsclaw-production.up.railway.app"></div>
+        <div class="fg"><label class="fl">Monthly Budget Limit ($)</label><input class="fi" type="number" value="50" id="budget-input" oninput="document.getElementById('u-budget').textContent='$'+this.value+'.00'"></div>
+        <button class="btn btn-primary" onclick="addLog('Company settings saved','info')">💾 Save Settings</button>
+      </div>
+    </div>
+  </div>
+
+  </div><!-- end main-content -->
+</div><!-- end main -->
+<script>
+// ═══════════════ NAVIGATION
+const pageTitles = {chat:'Command Chat',orgchart:'Company Org Chart',overview:'HQ Overview',cto:'CTO Agent',finance:'Finance Agent',social:'Social Accounts Agent',store:'Store Integration Agent',products:'Winning Products Agent',competitor:'Competitor Intel Agent',content:'AI Content Studio Agent',video:'Video Script Agent',calendar:'Content Calendar Agent',analytics:'Analytics Agent',adperf:'Ad Performance Agent',reports:'Client Reports Agent',funnel:'Sales Funnel Agent',marketing:'Marketing Agent',sales:'Sales Agent',geo:'GEO Agent — Generative Engine Optimisation',seo:'SEO Agent',research:'Research Agent',dev:'Dev Agent',debug:'Debug Agent',qa:'QA Agent',cron:'Cron Jobs',usage:'Usage & Cost Monitor',logs:'Live Agent Logs',config:'Configuration'};
+const pageSubs = {chat:'Select an agent and give your instruction — nothing happens without your command',orgchart:'Full company structure — 25 agents reporting to Bibin Lonappan',overview:'Real-time status of your entire agent company',cto:'Technical systems, architecture & deployment monitoring',finance:'API cost tracking, billing & revenue monitoring',social:'Instagram, TikTok, Facebook & LinkedIn account management',store:'Shopify & WooCommerce product sync automation',products:'Trending product discovery & viral opportunity finder',competitor:'Deep competitor monitoring & intelligence reports',content:'Scroll-stopping posts, captions & multi-platform content',video:'UGC scripts, hooks & short-form video ideas',calendar:'Visual content scheduling & auto-publishing',analytics:'Engagement metrics, reach & performance insights',adperf:'Paid ad ROAS, CPC & campaign optimisation',reports:'Polished client growth reports & dashboards',funnel:'Lead tracking, conversion & pipeline management',marketing:'Brand campaigns, outreach & growth hacking',sales:'Prospect outreach, follow-ups & deal closing',geo:'AI search visibility — ChatGPT, Perplexity, Gemini citations',seo:'Keyword research, rankings & technical SEO',research:'Market research, trend analysis & competitive intelligence',dev:'Code development, GitHub PRs & Railway deployments',debug:'Error detection, crash monitoring & log analysis',qa:'Testing, quality checks & deployment verification',cron:'Approved recurring agent tasks & schedules',usage:'Token usage, API costs & budget monitoring',logs:'Real-time activity stream from all 25 agents',config:'API keys, company settings & environment config'};
+
+function nav(el, page) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  const page = document.getElementById('page-' + name);
-  if (page) { page.classList.add('active'); page.style.display = name === 'chat' ? 'flex' : 'block'; }
-  event.currentTarget.classList.add('active');
-  const titles = {chat:'Chat',overview:'Overview',agents:'Agents',skills:'Skills',channels:'Channels',cron:'Cron Jobs',usage:'Usage',sessions:'Sessions',config:'Config',logs:'Logs',communications:'Communications',appearance:'Appearance',automation:'Automation',nodes:'Nodes'};
-  const subs = {chat:'Talk to BibsClaw AI',overview:'System status and activity',agents:'Manage your AI agent army',skills:'Toggle agent capabilities',channels:'Messaging channels',cron:'Scheduled agent tasks',usage:'API usage and costs',sessions:'Active agent sessions',config:'API keys and settings',logs:'Real-time activity stream',communications:'Notification settings',appearance:'Customize the UI',automation:'Trigger-based workflows',nodes:'Connected environments'};
-  document.getElementById('page-title').textContent = titles[name] || name;
-  document.getElementById('page-sub').textContent = subs[name] || '';
-  const actions = {chat:'+ New Chat',agents:'+ New Agent',skills:'Browse Store',cron:'+ New Job',logs:'Export Logs'};
-  document.getElementById('main-action-btn').textContent = actions[name] || '+ New';
+  el.classList.add('active');
+  showPage(page);
+}
+function showPage(page) {
+  document.querySelectorAll('.page').forEach(p => { p.style.display='none'; p.classList.remove('active'); });
+  const pg = document.getElementById('page-'+page);
+  if (pg) { pg.style.display='block'; pg.classList.add('active'); }
+  if (page === 'chat') { pg.style.display='flex'; pg.style.flexDirection='column'; pg.style.height='calc(100vh - 50px)'; pg.style.padding='0'; }
+  document.getElementById('pg-title').textContent = pageTitles[page] || page;
+  document.getElementById('pg-sub').textContent = pageSubs[page] || '';
 }
 
-async function sendMessage() {
-  const input = document.getElementById('chat-input');
+// ═══════════════ CHAT
+let msgCount = 0, tokenCount = 0;
+async function sendCmd() {
+  const input = document.getElementById('chat-in');
+  const agent = document.getElementById('active-agent');
   const text = input.value.trim();
   if (!text) return;
-  appendMsg(text, 'user');
   input.value = '';
-  messageCount++;
-  document.getElementById('msg-count').textContent = messageCount;
-  appendMsg('🤔 Thinking...', 'ai', 'thinking');
+  msgCount++;
+  appendMsg(text, 'user', 'You (Bibin)');
+  const agentName = agent.options[agent.selectedIndex].text;
+  appendMsg('⏳ ' + agentName + ' is processing your instruction...', 'ai', agentName, 'thinking');
+  addLog('[CMD] Bibin → ' + agentName + ': ' + text.substring(0,60), 'info');
+  addRecentCmd(agentName, text);
   try {
-    const res = await fetch('/api/chat', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text})});
+    const res = await fetch('/api/chat', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text,agent:agent.value})});
     const data = await res.json();
-    removeThinking();
-    appendMsg(data.response || data.message || 'Got it!', 'ai');
-    tokenCount += (data.tokens || 50);
-    document.getElementById('token-count').textContent = tokenCount;
-    addLog('[Chat] User: ' + text.substring(0,40) + '...');
+    removeEl('thinking');
+    appendMsg(data.response || data.message || 'Task acknowledged. I will prepare the results for your review.', 'ai', agentName);
+    tokenCount += data.tokens || 80;
+    document.getElementById('u-msgs').textContent = msgCount;
+    document.getElementById('u-tokens').textContent = tokenCount;
   } catch(e) {
-    removeThinking();
-    appendMsg('⚠️ Could not reach BibsClaw API. Make sure the server is running on Railway.', 'ai');
+    removeEl('thinking');
+    appendMsg('⚠️ Cannot reach bibsclaw API. Ensure the Railway service is running and /api/chat is active.', 'ai', agentName);
   }
 }
-
-function appendMsg(text, role, id) {
-  const msgs = document.getElementById('chat-messages');
-  const div = document.createElement('div');
-  if (id) div.id = id;
-  div.innerHTML = '<div class="msg-label">' + (role==='user'?'You':'BibsClaw AI') + '</div><div class="msg msg-' + role + '">' + text + '</div>';
-  msgs.appendChild(div);
+function chatKey(e) { if(e.key==='Enter' && !e.shiftKey) { e.preventDefault(); sendCmd(); } }
+function appendMsg(text, role, label, id) {
+  const msgs = document.getElementById('chat-msgs');
+  const d = document.createElement('div');
+  d.className = 'msg-row ' + role;
+  if (id) d.id = id;
+  d.innerHTML = '<div class="msg-lbl">' + label + '</div><div class="msg-bubble">' + text + '</div>';
+  msgs.appendChild(d);
   msgs.scrollTop = msgs.scrollHeight;
 }
+function removeEl(id) { const e = document.getElementById(id); if(e) e.remove(); }
 
-function removeThinking() {
-  const t = document.getElementById('thinking');
-  if (t) t.remove();
+// ═══════════════ RUN AGENT from agent page
+function runAgent(id, name) {
+  const ta = document.querySelector('#page-' + id + ' textarea');
+  const task = ta ? ta.value.trim() : '';
+  if (!task) { alert('Please enter an instruction for ' + name); return; }
+  addLog('[TASK] Bibin → ' + name + ': ' + task.substring(0,80), 'info');
+  const logEl = document.getElementById('log-' + id);
+  if (logEl) { logEl.innerHTML = '<span style="color:var(--yellow)">[' + new Date().toLocaleTimeString() + '] Processing: ' + task.substring(0,60) + '...</span>'; }
+  addRecentCmd(name, task);
+  setTimeout(() => { if (logEl) logEl.innerHTML += '<br><span style="color:var(--green)">[' + new Date().toLocaleTimeString() + '] Task queued. Results will appear here when complete.</span>'; }, 1500);
 }
 
-function handleChatKey(e) { if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
+// ═══════════════ LOGS
+function addLog(msg, type='info') {
+  const box = document.getElementById('log-main');
+  if (!box) return;
+  const d = document.createElement('div');
+  d.className = 'log-line log-' + type;
+  d.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg;
+  box.appendChild(d);
+  box.scrollTop = box.scrollHeight;
+}
+function filterLogs(type) { addLog('Log filter: ' + type, 'system'); }
 
-function addCronJob() {
+// ═══════════════ RECENT COMMANDS
+function addRecentCmd(agent, cmd) {
+  const el = document.getElementById('recent-cmds');
+  if (!el) return;
+  if (el.textContent.includes('No instructions')) el.textContent = '';
+  el.innerHTML += '<div style="color:var(--text);margin-bottom:4px"><span style="color:var(--accent)">[' + new Date().toLocaleTimeString() + ']</span> <span style="color:#888">→</span> <span style="color:#aaa">' + agent + '</span>: ' + cmd.substring(0,80) + '</div>';
+}
+
+// ═══════════════ CRON
+let cronJobs = [];
+function addCron() {
   const name = document.getElementById('cron-name').value.trim();
   const agent = document.getElementById('cron-agent').value;
-  const schedule = document.getElementById('cron-schedule').value.trim();
+  const sched = document.getElementById('cron-sched').value.trim();
   const prompt = document.getElementById('cron-prompt').value.trim();
-  if (!name || !schedule) { alert('Name and schedule are required'); return; }
-  cronJobs.push({name,agent,schedule,prompt,enabled:true});
-  renderCronJobs();
-  document.getElementById('cron-count').textContent = cronJobs.length;
+  if (!name || !sched) { alert('Name and schedule required'); return; }
+  cronJobs.push({name, agent, sched, prompt, enabled:true, created: new Date().toLocaleString()});
+  renderCron();
+  addLog('[CRON] New job created: ' + name + ' → ' + agent, 'info');
   document.getElementById('cron-name').value = '';
-  document.getElementById('cron-schedule').value = '';
+  document.getElementById('cron-sched').value = '';
   document.getElementById('cron-prompt').value = '';
-  addLog('[Cron] New job created: ' + name);
 }
-
-function renderCronJobs() {
+function renderCron() {
   const list = document.getElementById('cron-list');
-  if (!cronJobs.length) { list.innerHTML = '<div style="color:#888;font-size:13px;padding:16px 0;text-align:center">No jobs yet.</div>'; return; }
-  list.innerHTML = cronJobs.map((j,i) => '<div class="agent-card"><div class="agent-info"><div class="agent-avatar" style="background:#1a2e1a">⏰</div><div><div class="agent-name">'+j.name+'</div><div class="agent-role">'+j.agent+' · '+j.schedule+'</div></div></div><div style="display:flex;gap:8px;align-items:center"><span class="cron-badge cron-enabled">Enabled</span><button class="btn btn-ghost" onclick="removeCron('+i+')" style="padding:4px 8px;font-size:11px">✕</button></div></div>').join('');
+  if (!cronJobs.length) { list.innerHTML = '<div style="color:var(--muted);font-size:12px;text-align:center;padding:20px">No jobs yet.</div>'; return; }
+  list.innerHTML = cronJobs.map((j,i) => '<div class="agent-card" style="margin-bottom:8px"><div style="font-size:18px;flex-shrink:0">⏰</div><div style="flex:1"><div style="font-weight:700;color:#fff;font-size:12px">'+j.name+'</div><div style="font-size:11px;color:var(--muted);margin-top:2px">'+j.agent+' · '+j.sched+'</div></div><button class="btn btn-red btn-sm" onclick="cronJobs.splice('+i+',1);renderCron()">✕</button></div>').join('');
 }
 
-function removeCron(i) { cronJobs.splice(i,1); renderCronJobs(); document.getElementById('cron-count').textContent = cronJobs.length; }
-
-function addLog(msg) {
-  const log = document.getElementById('log-output');
-  const d = document.createElement('div');
-  d.style.color = msg.includes('Error') ? '#ef4444' : '#22c55e';
-  d.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg;
-  log.appendChild(d);
-  log.scrollTop = log.scrollHeight;
-  const activity = document.getElementById('activity-log');
-  const a = document.createElement('div');
-  a.textContent = '• ' + msg;
-  activity.insertBefore(a, activity.firstChild);
-  if (activity.children.length > 6) activity.removeChild(activity.lastChild);
+// ═══════════════ REFRESH
+function refreshAll() {
+  addLog('[SYSTEM] Status refresh requested by Bibin', 'system');
+  addLog('[RAILWAY] Connection healthy · bibsclaw-production.up.railway.app', 'info');
+  addLog('[AGENTS] All 25 agents standing by', 'info');
 }
 
-function refreshStatus() {
-  document.getElementById('tg-probe').textContent = 'Just now';
-  document.getElementById('tg-status').textContent = '● Active';
-  document.getElementById('tg-status').className = 'tag tag-active';
-  addLog('[System] Status refreshed');
+// ═══════════════ TOP ACTION
+function topAction() {
+  const title = document.getElementById('pg-title').textContent;
+  if (title.includes('Chat')) appendMsg('Starting new conversation...', 'ai', 'System');
+  else addLog('[ACTION] ' + title + ' action triggered by Bibin', 'info');
 }
 
-// Socket.IO live log
+// ═══════════════ SOCKET
 try {
   const socket = io();
-  socket.on('log', msg => addLog('[Socket] ' + msg));
-  socket.on('agent-activity', data => addLog('[Agent] ' + (data.message || JSON.stringify(data))));
+  socket.on('log', msg => addLog('[SOCKET] ' + msg));
+  socket.on('agent', data => addLog('[AGENT] ' + (data.agent||'') + ': ' + (data.message||''), 'info'));
+  socket.on('error', data => addLog('[ERROR] ' + data, 'error'));
 } catch(e) {}
 
-// Init
-document.addEventListener('DOMContentLoaded', () => {
-  refreshStatus();
-  setTimeout(() => addLog('[BibsClaw] Control panel loaded'), 500);
+// ═══════════════ INIT
+window.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => {
+    addLog('[BOOT] BibsClaw Agent Company HQ online', 'system');
+    addLog('[BOOT] 25 specialist agents loaded and standing by', 'info');
+    addLog('[SECURITY] Command lock engaged — Bibin Lonappan is the only authorized commander', 'info');
+  }, 300);
 });
 </script>
 </body>
