@@ -342,7 +342,7 @@ export function createDashboardServer(
   // Uses Railway REST API with RAILWAY_API_TOKEN env var
   // ═══════════════════════════════════════════════════════════════
 
-  const RAILWAY_API_TOKEN = process.env.RAILWAY_API_TOKEN || "";
+  const getRailwayToken = () => process.env.RAILWAY_API_TOKEN || "";
   const RAILWAY_SERVICE_ID = process.env.RAILWAY_SERVICE_ID || "ca5e3298-6356-42de-8d88-a2991e9db49b";
   const RAILWAY_ENV_ID = process.env.RAILWAY_ENV_ID || "e119f5aa-639d-4c62-8b6b-524e8e2bd40f";
 
@@ -352,7 +352,7 @@ export function createDashboardServer(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${RAILWAY_API_TOKEN}`,
+        "Authorization": `Bearer ${getRailwayToken()}`,
       },
       body: JSON.stringify({ query, variables }),
     });
@@ -363,7 +363,7 @@ export function createDashboardServer(
   // GET service status
   app.get("/api/service/status", async (_req, res): Promise<void> => {
     try {
-      if (!RAILWAY_API_TOKEN) {
+      if (!getRailwayToken()) {
         res.json({ running: true, note: "RAILWAY_API_TOKEN not set — assuming running" });
         return;
       }
@@ -394,7 +394,7 @@ export function createDashboardServer(
   // POST /api/service/stop — redeploy with 0 replicas (pause)
   app.post("/api/service/stop", async (_req, res): Promise<void> => {
     try {
-      if (!RAILWAY_API_TOKEN) {
+      if (!getRailwayToken()) {
         res.status(400).json({ ok: false, error: "RAILWAY_API_TOKEN not configured in Railway variables" });
         return;
       }
@@ -420,7 +420,7 @@ export function createDashboardServer(
   // POST /api/service/start — restore to 1 replica
   app.post("/api/service/start", async (_req, res): Promise<void> => {
     try {
-      if (!RAILWAY_API_TOKEN) {
+      if (!getRailwayToken()) {
         res.status(400).json({ ok: false, error: "RAILWAY_API_TOKEN not configured in Railway variables" });
         return;
       }
