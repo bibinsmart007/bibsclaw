@@ -346,7 +346,8 @@ export function createDashboardServer(
   const RAILWAY_SERVICE_ID = process.env.RAILWAY_SERVICE_ID || "ca5e3298-6356-42de-8d88-a2991e9db49b";
   const RAILWAY_ENV_ID = process.env.RAILWAY_ENV_ID || "e119f5aa-639d-4c62-8b6b-524e8e2bd40f";
 
-  async function railwayGraphQL(query: string, variables: Record<string, unknown> = {}) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async function railwayGraphQL(query: string, variables: Record<string, unknown> = {}): Promise<any> {
     const res = await fetch("https://backboard.railway.com/graphql/v2", {
       method: "POST",
       headers: {
@@ -355,7 +356,8 @@ export function createDashboardServer(
       },
       body: JSON.stringify({ query, variables }),
     });
-    return res.json();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return res.json() as any;
   }
 
   // GET service status
