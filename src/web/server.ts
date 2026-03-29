@@ -158,26 +158,26 @@ export function createDashboardServer(
   // Route a message to a specific specialist agent
   app.post("/api/agent/:agentId", async (req, res): Promise<void> => {
     try {
-      const agentId = req.params.agentId;
+      const requestedAgentId = req.params.agentId;
       const { message, history } = req.body;
       if (!message) {
         res.status(400).json({ error: "Message is required" });
         return;
       }
-      const agentDef = getAgent(agentId);
+      const agentDef = getAgent(requestedAgentId);
       if (!agentDef) {
-        res.status(404).json({ error: `Unknown agent: ${agentId}` });
+        res.status(404).json({ error: `Unknown agent: ${requestedAgentId}` });
         return;
       }
 
       // Emit agent start event to UI via Socket.IO
-      io.emit("agentStart", { agentId, agentName: agentDef.name, message });
+      io.emit("agentStart", { agentId: requestedAgentId, agentName: agentDef.name, message });
 
-      const result = await routeToAgent(agentId, message, history || []);
+      const result = await routeToAgent(requestedAgentId, message, history || []);
 
       // Emit completion event with tool usage
       io.emit("agentComplete", {
-        agentId,
+        agentId: requestedAgentId,
         agentName: agentDef.name,
         toolsUsed: result.toolsUsed,
         tokensUsed: result.tokensUsed,
@@ -189,7 +189,7 @@ export function createDashboardServer(
       db.addChatMessage("assistant", result.response, result.model).catch(() => {});
 
       res.json({
-        agentId,
+        agentId: requestedAgentId,
         agentName: agentDef.name,
         response: result.response,
         toolsUsed: result.toolsUsed,
@@ -219,10 +219,23 @@ export function createDashboardServer(
         agentIds.map((id: string) => routeToAgent(id, message))
       );
 
-      const responses = results.map((r, i) => ({
-        agentId: agentIds[i],
-        ...(r.status === "fulfilled" ? r.value : { error: (r as PromiseRejectedResult).reason?.message })
-      }));
+      const responses = results.map((r, i) => {
+        const id = agentIds[i] as string;
+        if (r.status === "fulfilled") {
+          return {
+            agentId: id,
+            agentName: r.value.agentName,
+            response: r.value.response,
+            toolsUsed: r.value.toolsUsed,
+            tokensUsed: r.value.tokensUsed,
+            model: r.value.model,
+          };
+        }
+        return {
+          agentId: id,
+          error: (r as PromiseRejectedResult).reason?.message ?? "Unknown error",
+        };
+      });
 
       io.emit("broadcastComplete", { responses });
       res.json({ responses });
