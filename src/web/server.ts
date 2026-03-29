@@ -14,6 +14,7 @@ import { SpeechToText } from "../voice/stt.js";
 import { TextToSpeech } from "../voice/tts.js";
 import { TaskScheduler } from "../automation/scheduler.js";
 
+import { routeToAgent, getAgentList, getAgent } from "../agent/agentRouter.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -132,7 +133,108 @@ export function createDashboardServer(
     res.json({ toggled });
   });
 
-  // Conversation history
+  
+  // ═══════════════════════════════════════════════════════════════
+  // AGENT ROUTING — Each of 25 specialist agents with dedicated
+  // system prompts, tools, and Anthropic agentic loop.
+  // Only Bibin Lonappan can activate agents via this endpoint.
+  // ═══════════════════════════════════════════════════════════════
+
+  // Get all agent definitions for the UI
+  app.get("/api/agents", (_req, res) => {
+    res.json(getAgentList());
+  });
+
+  // Get a single agent definition
+  app.get("/api/agents/:agentId", (req, res): void => {
+    const agent = getAgent(req.params.agentId);
+    if (!agent) {
+      res.status(404).json({ error: "Agent not found" });
+      return;
+    }
+    res.json(agent);
+  });
+
+  // Route a message to a specific specialist agent
+  app.post("/api/agent/:agentId", async (req, res): Promise<void> => {
+    try {
+      const { agentId } = req.params;
+      const { message, history } = req.body;
+
+      if (!message) {
+        res.status(400).json({ error: "Message is required" });
+        return;
+      }
+
+      const agent = getAgent(agentId);
+      if (!agent) {
+        res.status(404).json({ error: `Unknown agent: ${agentId}` });
+        return;
+      }
+
+      // Emit agent start event to UI via Socket.IO
+      io.emit("agentStart", { agentId, agentName: agent.name, message });
+
+      const result = await routeToAgent(agentId, message, history || []);
+
+      // Emit completion event with tool usage
+      io.emit("agentComplete", {
+        agentId,
+        agentName: agent.name,
+        toolsUsed: result.toolsUsed,
+        tokensUsed: result.tokensUsed,
+        model: result.model,
+      });
+
+      // Log to database
+      db.addChatMessage("user", `[${agent.name}] ${message}`, result.model).catch(() => {});
+      db.addChatMessage("assistant", result.response, result.model).catch(() => {});
+
+      res.json({
+        agentId,
+        agentName: agent.name,
+        response: result.response,
+        toolsUsed: result.toolsUsed,
+        tokensUsed: result.tokensUsed,
+        model: result.model,
+      });
+
+    } catch (err) {
+      const errorMsg = String(err);
+      io.emit("agentError", { agentId: req.params.agentId, error: errorMsg });
+      res.status(500).json({ error: errorMsg });
+    }
+  });
+
+  // Broadcast a message to multiple agents simultaneously
+  app.post("/api/agents/broadcast", async (req, res): Promise<void> => {
+    try {
+      const { message, agentIds } = req.body;
+      if (!message || !agentIds || !Array.isArray(agentIds)) {
+        res.status(400).json({ error: "message and agentIds array required" });
+        return;
+      }
+      
+      io.emit("broadcastStart", { agentIds, message });
+      
+      // Run all agents in parallel
+      const results = await Promise.allSettled(
+        agentIds.map((id: string) => routeToAgent(id, message))
+      );
+      
+      const responses = results.map((r, i) => ({
+        agentId: agentIds[i],
+        ...(r.status === "fulfilled" ? r.value : { error: r.reason?.message })
+      }));
+      
+      io.emit("broadcastComplete", { responses });
+      res.json({ responses });
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+// Conversation history
   app.get("/api/history", (_req, res) => {
     res.json(agent.getHistory());
   });
