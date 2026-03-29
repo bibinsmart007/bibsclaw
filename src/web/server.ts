@@ -336,5 +336,110 @@ export function createDashboardServer(
   scheduler.on("taskRun", (task) => io.emit("taskRun", task));
   scheduler.on("taskAdded", (task) => io.emit("taskAdded", task));
 
+  
+  // ═══════════════════════════════════════════════════════════════
+  // SERVICE CONTROL — Start / Stop the Railway deployment
+  // Uses Railway REST API with RAILWAY_API_TOKEN env var
+  // ═══════════════════════════════════════════════════════════════
+
+  const RAILWAY_API_TOKEN = process.env.RAILWAY_API_TOKEN || "";
+  const RAILWAY_SERVICE_ID = process.env.RAILWAY_SERVICE_ID || "ca5e3298-6356-42de-8d88-a2991e9db49b";
+  const RAILWAY_ENV_ID = process.env.RAILWAY_ENV_ID || "e119f5aa-639d-4c62-8b6b-524e8e2bd40f";
+
+  async function railwayGraphQL(query: string, variables: Record<string, unknown> = {}) {
+    const res = await fetch("https://backboard.railway.com/graphql/v2", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${RAILWAY_API_TOKEN}`,
+      },
+      body: JSON.stringify({ query, variables }),
+    });
+    return res.json();
+  }
+
+  // GET service status
+  app.get("/api/service/status", async (_req, res): Promise<void> => {
+    try {
+      if (!RAILWAY_API_TOKEN) {
+        res.json({ running: true, note: "RAILWAY_API_TOKEN not set — assuming running" });
+        return;
+      }
+      const data = await railwayGraphQL(`
+        query {
+          service(id: "${RAILWAY_SERVICE_ID}") {
+            id
+            name
+            deployments(first: 1) {
+              edges {
+                node {
+                  id
+                  status
+                }
+              }
+            }
+          }
+        }
+      `);
+      const deployment = data?.data?.service?.deployments?.edges?.[0]?.node;
+      const status = deployment?.status || "UNKNOWN";
+      res.json({ running: status === "SUCCESS" || status === "DEPLOYING", status });
+    } catch (err) {
+      res.json({ running: true, error: String(err) });
+    }
+  });
+
+  // POST /api/service/stop — redeploy with 0 replicas (pause)
+  app.post("/api/service/stop", async (_req, res): Promise<void> => {
+    try {
+      if (!RAILWAY_API_TOKEN) {
+        res.status(400).json({ ok: false, error: "RAILWAY_API_TOKEN not configured in Railway variables" });
+        return;
+      }
+      const data = await railwayGraphQL(`
+        mutation ServiceInstanceUpdate($serviceId: String!, $environmentId: String!, $input: ServiceInstanceUpdateInput!) {
+          serviceInstanceUpdate(serviceId: $serviceId, environmentId: $environmentId, input: $input)
+        }
+      `, {
+        serviceId: RAILWAY_SERVICE_ID,
+        environmentId: RAILWAY_ENV_ID,
+        input: { numReplicas: 0 }
+      });
+      if (data.errors) {
+        res.json({ ok: false, error: data.errors[0]?.message || "GraphQL error" });
+        return;
+      }
+      res.json({ ok: true, action: "stopped", note: "Service set to 0 replicas — no charges while stopped" });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: String(err) });
+    }
+  });
+
+  // POST /api/service/start — restore to 1 replica
+  app.post("/api/service/start", async (_req, res): Promise<void> => {
+    try {
+      if (!RAILWAY_API_TOKEN) {
+        res.status(400).json({ ok: false, error: "RAILWAY_API_TOKEN not configured in Railway variables" });
+        return;
+      }
+      const data = await railwayGraphQL(`
+        mutation ServiceInstanceUpdate($serviceId: String!, $environmentId: String!, $input: ServiceInstanceUpdateInput!) {
+          serviceInstanceUpdate(serviceId: $serviceId, environmentId: $environmentId, input: $input)
+        }
+      `, {
+        serviceId: RAILWAY_SERVICE_ID,
+        environmentId: RAILWAY_ENV_ID,
+        input: { numReplicas: 1 }
+      });
+      if (data.errors) {
+        res.json({ ok: false, error: data.errors[0]?.message || "GraphQL error" });
+        return;
+      }
+      res.json({ ok: true, action: "started", note: "Service restored to 1 replica" });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: String(err) });
+    }
+  });
+
   return { app, httpServer, io };
 }
