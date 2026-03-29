@@ -1,668 +1,510 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BibsClaw AI Assistant</title>
-    <script src="/socket.io/socket.io.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-    <style>
-        :root {
-            --bg-primary: #0a0e17;
-            --bg-secondary: #111827;
-            --bg-tertiary: #1a2332;
-            --bg-card: rgba(17, 24, 39, 0.8);
-            --border: rgba(99, 102, 241, 0.15);
-            --border-active: rgba(99, 102, 241, 0.4);
-            --text-primary: #f1f5f9;
-            --text-secondary: #94a3b8;
-            --text-muted: #64748b;
-            --accent: #6366f1;
-            --accent-glow: rgba(99, 102, 241, 0.3);
-            --success: #10b981;
-            --danger: #ef4444;
-            --warning: #f59e0b;
-            --user-msg: linear-gradient(135deg, #6366f1, #8b5cf6);
-            --assistant-msg: rgba(30, 41, 59, 0.8);
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg-primary); color: var(--text-primary); height: 100vh; display: flex; overflow: hidden; }
-        /* Scrollbar */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: var(--border-active); }
-        /* Sidebar */
-        .sidebar { width: 260px; background: var(--bg-secondary); border-right: 1px solid var(--border); display: flex; flex-direction: column; transition: width 0.3s ease; flex-shrink: 0; }
-        .sidebar.collapsed { width: 64px; }
-        .sidebar-header { padding: 20px 16px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border); }
-        .logo { width: 36px; height: 36px; background: var(--user-msg); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; flex-shrink: 0; }
-        .sidebar-header h1 { font-size: 18px; font-weight: 700; background: linear-gradient(135deg, #6366f1, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; white-space: nowrap; }
-        .sidebar.collapsed .sidebar-header h1, .sidebar.collapsed .nav-label, .sidebar.collapsed .sidebar-footer span { display: none; }
-        .nav { flex: 1; padding: 12px 8px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
-        .nav-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; cursor: pointer; color: var(--text-secondary); transition: all 0.2s; font-size: 14px; text-decoration: none; white-space: nowrap; }
-        .nav-item:hover { background: var(--bg-tertiary); color: var(--text-primary); }
-        .nav-item.active { background: rgba(99, 102, 241, 0.12); color: var(--accent); }
-        .nav-item .material-icons-round { font-size: 20px; flex-shrink: 0; }
-        .sidebar-footer { padding: 12px 8px; border-top: 1px solid var(--border); }
-        /* Main Content */
-        .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-        .topbar { height: 56px; background: var(--bg-secondary); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; flex-shrink: 0; }
-        .topbar-left { display: flex; align-items: center; gap: 12px; }
-        .topbar-right { display: flex; align-items: center; gap: 8px; }
-        .status-pill { display: flex; align-items: center; gap: 6px; padding: 4px 12px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 20px; font-size: 12px; font-weight: 500; }
-        .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); }
-        .status-dot.offline { background: var(--danger); }
-        .provider-badge { padding: 4px 10px; background: var(--user-msg); border-radius: 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; }
-        .icon-btn { width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
-        .icon-btn:hover { background: var(--bg-tertiary); color: var(--text-primary); border-color: var(--border-active); }
-        /* Chat Area */
-        .chat-area { flex: 1; display: flex; flex-direction: column; min-height: 0; }
-        .messages { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 16px; }
-        .welcome-screen { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 40px; text-align: center; }
-        .welcome-icon { width: 72px; height: 72px; background: var(--user-msg); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 36px; box-shadow: 0 8px 32px var(--accent-glow); }
-        .welcome-screen h2 { font-size: 28px; font-weight: 700; background: linear-gradient(135deg, #f1f5f9, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .welcome-screen p { color: var(--text-secondary); font-size: 15px; line-height: 1.6; max-width: 440px; }
-        .quick-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 8px; }
-        .quick-action { padding: 8px 16px; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 20px; color: var(--text-secondary); font-size: 13px; cursor: pointer; transition: all 0.2s; }
-        .quick-action:hover { border-color: var(--accent); color: var(--accent); background: rgba(99,102,241,0.08); }
-        /* Messages */
-        .msg { max-width: 75%; animation: msgIn 0.3s ease; }
-        .msg.user { align-self: flex-end; }
-        .msg.assistant { align-self: flex-start; }
-        .msg-bubble { padding: 12px 16px; border-radius: 16px; font-size: 14px; line-height: 1.6; white-space: pre-wrap; word-wrap: break-word; }
-        .msg.user .msg-bubble { background: var(--user-msg); color: white; border-bottom-right-radius: 4px; }
-        .msg.assistant .msg-bubble { background: var(--assistant-msg); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
-        .msg.tool .msg-bubble { background: rgba(99,102,241,0.06); border: 1px solid var(--border); font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-muted); border-radius: 8px; }
-        .msg.system .msg-bubble { background: var(--bg-tertiary); border: 1px dashed var(--border); color: var(--text-muted); text-align: center; font-size: 13px; border-radius: 8px; max-width: 100%; }
-        .msg-time { font-size: 11px; color: var(--text-muted); margin-top: 4px; padding: 0 4px; }
-        .msg.user .msg-time { text-align: right; }
-        @keyframes msgIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-        /* Thinking */
-        .thinking { display: none; padding: 8px 24px; color: var(--accent); font-size: 13px; align-items: center; gap: 8px; }
-        .thinking.visible { display: flex; }
-        .dot-pulse { display: flex; gap: 4px; }
-        .dot-pulse span { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; animation: dotPulse 1.4s infinite; }
-        .dot-pulse span:nth-child(2) { animation-delay: 0.2s; }
-        .dot-pulse span:nth-child(3) { animation-delay: 0.4s; }
-        @keyframes dotPulse { 0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); } 40% { opacity: 1; transform: scale(1); } }
-        /* Input Area */
-        .input-area { padding: 16px 24px; background: var(--bg-secondary); border-top: 1px solid var(--border); }
-        .input-wrapper { display: flex; align-items: center; gap: 8px; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 12px; padding: 4px 4px 4px 16px; transition: border-color 0.2s; }
-        .input-wrapper:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
-        .input-wrapper input { flex: 1; background: none; border: none; color: var(--text-primary); font-size: 14px; outline: none; font-family: inherit; }
-        .input-wrapper input::placeholder { color: var(--text-muted); }
-        .btn-voice { width: 36px; height: 36px; border-radius: 8px; border: none; background: transparent; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
-        .btn-voice:hover { color: var(--accent); background: rgba(99,102,241,0.1); }
-        .btn-voice.recording { color: var(--danger); background: rgba(239,68,68,0.1); animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
-        .btn-send { height: 36px; padding: 0 20px; border-radius: 8px; border: none; background: var(--user-msg); color: white; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s; }
-        .btn-send:hover { opacity: 0.9; transform: translateY(-1px); }
-        .btn-send:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-        /* Right Panel */
-        .right-panel { width: 280px; background: var(--bg-secondary); border-left: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; }
-        .panel-header { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
-        .panel-tabs { display: flex; gap: 0; }
-        .panel-tab { flex: 1; padding: 8px; text-align: center; font-size: 12px; font-weight: 500; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; }
-        .panel-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
-        .panel-content { flex: 1; overflow-y: auto; padding: 12px; }
-        .task-card { background: var(--bg-primary); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
-        .task-card .task-name { font-size: 13px; font-weight: 500; color: var(--text-primary); }
-        .task-card .task-meta { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
-        .tool-entry { padding: 6px 8px; font-size: 12px; color: var(--text-muted); border-left: 2px solid var(--border); margin-bottom: 6px; margin-left: 4px; }
-        .tool-entry.success { border-left-color: var(--success); }
-        .tool-entry.fail { border-left-color: var(--danger); }
-        .empty-state { text-align: center; padding: 32px 16px; color: var(--text-muted); font-size: 13px; }
-        /* Responsive */
-        @media (max-width: 768px) { .sidebar { position: fixed; left: -260px; z-index: 100; height: 100vh; } .sidebar.open { left: 0; } .right-panel { display: none; } }
-    
-/* View Panel System */
-.view-panel { display: none; flex-direction: column; flex: 1; min-height: 0; }
-.view-panel.active { display: flex; }
-.panel-page { flex: 1; overflow-y: auto; padding: 24px; }
-.panel-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
-.stat-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 20px; }
-.stat-card h3 { font-size: 13px; color: rgba(255,255,255,0.5); margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 0.5px; }
-.stat-card .stat-value { font-size: 32px; font-weight: 700; color: #fff; }
-.stat-card .stat-sub { font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 4px; }
-.section-title { font-size: 18px; font-weight: 600; color: #fff; margin: 0 0 16px 0; }
-.info-table { width: 100%; border-collapse: collapse; }
-.info-table th, .info-table td { text-align: left; padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.07); font-size: 13px; }
-.info-table th { color: rgba(255,255,255,0.4); font-weight: 500; }
-.info-table td { color: rgba(255,255,255,0.85); }
-.status-badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
-.status-ok { background: rgba(34,197,94,0.2); color: #4ade80; }
-.status-warn { background: rgba(234,179,8,0.2); color: #facc15; }
-.status-err { background: rgba(239,68,68,0.2); color: #f87171; }
-.file-list { list-style: none; padding: 0; margin: 0; }
-.file-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.05); color: rgba(255,255,255,0.8); font-size: 13px; cursor: pointer; }
-.file-item:hover { background: rgba(255,255,255,0.05); }
-.file-icon { font-size: 18px; color: rgba(255,255,255,0.4); }
-.terminal-output { background: #0d1117; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 16px; font-family: monospace; font-size: 13px; color: #e6edf3; min-height: 300px; max-height: 400px; overflow-y: auto; white-space: pre-wrap; }
-.form-group { margin-bottom: 16px; }
-.form-label { display: block; font-size: 13px; color: rgba(255,255,255,0.6); margin-bottom: 6px; }
-.form-input { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px 14px; color: #fff; font-size: 14px; outline: none; box-sizing: border-box; }
-.form-input:focus { border-color: rgba(139,92,246,0.5); }
-.btn-primary { background: linear-gradient(135deg,#7c3aed,#4f46e5); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 14px; cursor: pointer; }
-.btn-primary:hover { opacity: 0.9; }
-.health-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
-.health-item { background: rgba(255,255,255,0.04); border-radius: 10px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; }
-.health-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-.health-dot.green { background: #4ade80; box-shadow: 0 0 6px #4ade80; }
-.health-dot.yellow { background: #facc15; box-shadow: 0 0 6px #facc15; }
-.health-dot.red { background: #f87171; box-shadow: 0 0 6px #f87171; }
-.health-name { font-size: 13px; color: rgba(255,255,255,0.8); }
-.health-status { font-size: 11px; color: rgba(255,255,255,0.4); }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BibsClaw Control</title>
+<script src="/socket.io/socket.io.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:#0f0f10;color:#e8e8e8;display:flex;height:100vh;overflow:hidden}
+.sidebar{width:240px;background:#18181b;border-right:1px solid #2a2a2e;display:flex;flex-direction:column;flex-shrink:0}
+.sidebar-brand{padding:20px 16px;border-bottom:1px solid #2a2a2e;display:flex;align-items:center;gap:10px}
+.brand-icon{width:32px;height:32px;background:linear-gradient(135deg,#e85d04,#f48c06);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.brand-name{font-weight:700;font-size:15px;color:#fff}
+.brand-sub{font-size:10px;color:#888;margin-top:1px}
+.nav-section{padding:12px 8px 4px;font-size:10px;font-weight:600;color:#666;text-transform:uppercase;letter-spacing:.8px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:7px;cursor:pointer;font-size:13px;color:#aaa;margin:1px 8px;transition:all .15s}
+.nav-item:hover{background:#222225;color:#e8e8e8}
+.nav-item.active{background:#1c1c22;color:#fff;font-weight:500}
+.nav-item.active .nav-icon{color:#e85d04}
+.nav-icon{font-size:15px;width:18px;text-align:center}
+.nav-badge{margin-left:auto;background:#e85d04;color:#fff;font-size:10px;padding:1px 6px;border-radius:10px}
+.sidebar-version{margin-top:auto;padding:12px 16px;font-size:11px;color:#555;border-top:1px solid #2a2a2e;display:flex;align-items:center;gap:8px}
+.version-dot{width:7px;height:7px;background:#22c55e;border-radius:50%}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{padding:0 24px;height:52px;border-bottom:1px solid #2a2a2e;display:flex;align-items:center;justify-content:space-between;background:#18181b;flex-shrink:0}
+.topbar-title{font-size:15px;font-weight:600;color:#fff}
+.topbar-sub{font-size:12px;color:#888;margin-top:2px}
+.topbar-actions{display:flex;gap:8px}
+.btn{padding:7px 14px;border-radius:7px;border:none;cursor:pointer;font-size:12px;font-weight:500;transition:all .15s}
+.btn-primary{background:#e85d04;color:#fff}
+.btn-primary:hover{background:#d04e00}
+.btn-ghost{background:transparent;color:#aaa;border:1px solid #2a2a2e}
+.btn-ghost:hover{background:#222225;color:#e8e8e8}
+.content{flex:1;overflow-y:auto;padding:24px}
+.page{display:none}
+.page.active{display:block}
+.card{background:#18181b;border:1px solid #2a2a2e;border-radius:10px;padding:20px;margin-bottom:16px}
+.card-title{font-size:13px;font-weight:600;color:#fff;margin-bottom:4px}
+.card-sub{font-size:12px;color:#888;margin-bottom:16px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.stat-card{background:#18181b;border:1px solid #2a2a2e;border-radius:10px;padding:18px}
+.stat-label{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.stat-value{font-size:28px;font-weight:700;color:#fff}
+.stat-sub{font-size:11px;color:#888;margin-top:4px}
+.status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+.status-green{background:#22c55e}
+.status-red{background:#ef4444}
+.status-yellow{background:#f59e0b}
+.toggle{position:relative;display:inline-block;width:40px;height:22px}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#333;border-radius:11px;transition:.3s}
+.toggle-slider:before{position:absolute;content:"";height:16px;width:16px;left:3px;bottom:3px;background:#888;border-radius:50%;transition:.3s}
+.toggle input:checked + .toggle-slider{background:#e85d04}
+.toggle input:checked + .toggle-slider:before{transform:translateX(18px);background:#fff}
+.skill-item{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #222225}
+.skill-item:last-child{border-bottom:none}
+.skill-info{display:flex;align-items:center;gap:10px}
+.skill-icon{width:32px;height:32px;background:#1c1c22;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px}
+.skill-name{font-size:13px;font-weight:500;color:#e8e8e8}
+.skill-desc{font-size:11px;color:#888;margin-top:2px}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+.tag-core{background:#1c1c22;color:#888}
+.tag-active{background:#1a2e1a;color:#22c55e}
+.tag-warning{background:#2e2a1a;color:#f59e0b}
+.chat-container{display:flex;flex-direction:column;height:100%}
+.chat-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.msg{max-width:75%;padding:12px 16px;border-radius:12px;font-size:13px;line-height:1.5}
+.msg-user{background:#e85d04;color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+.msg-ai{background:#1c1c22;color:#e8e8e8;align-self:flex-start;border-bottom-left-radius:4px}
+.msg-label{font-size:10px;color:#888;margin-bottom:4px}
+.chat-input-bar{display:flex;gap:8px;padding:16px;border-top:1px solid #2a2a2e;background:#18181b}
+.chat-input{flex:1;background:#111113;border:1px solid #2a2a2e;border-radius:8px;padding:10px 14px;color:#e8e8e8;font-size:13px;font-family:inherit;resize:none;height:42px}
+.chat-input:focus{outline:none;border-color:#e85d04}
+.agent-card{background:#1c1c22;border:1px solid #2a2a2e;border-radius:8px;padding:14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+.agent-info{display:flex;align-items:center;gap:12px}
+.agent-avatar{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.agent-name{font-size:13px;font-weight:600;color:#e8e8e8}
+.agent-role{font-size:11px;color:#888;margin-top:2px}
+.form-group{margin-bottom:14px}
+.form-label{font-size:12px;color:#aaa;margin-bottom:6px;display:block}
+.form-input{width:100%;background:#111113;border:1px solid #2a2a2e;border-radius:7px;padding:9px 12px;color:#e8e8e8;font-size:13px;font-family:inherit}
+.form-input:focus{outline:none;border-color:#e85d04}
+.form-select{width:100%;background:#111113;border:1px solid #2a2a2e;border-radius:7px;padding:9px 12px;color:#e8e8e8;font-size:13px}
+.table{width:100%;border-collapse:collapse}
+.table th{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px;padding:10px 12px;text-align:left;border-bottom:1px solid #2a2a2e}
+.table td{padding:12px;font-size:13px;color:#ccc;border-bottom:1px solid #1c1c22}
+.table tr:last-child td{border-bottom:none}
+.progress-bar{background:#1c1c22;border-radius:4px;height:6px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,#e85d04,#f48c06);border-radius:4px;transition:width .3s}
+.cron-badge{padding:3px 8px;border-radius:4px;font-size:11px;font-weight:500}
+.cron-enabled{background:#1a2e1a;color:#22c55e}
+.cron-disabled{background:#2e1a1a;color:#ef4444}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:#111}
+::-webkit-scrollbar-thumb{background:#333;border-radius:3px}
 </style>
 </head>
 <body>
-    <!-- Sidebar -->
-    <aside class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <div class="logo">BC</div>
-            <h1>BibsClaw</h1>
+<div class="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-icon">🦞</div>
+    <div>
+      <div class="brand-name">BibsClaw</div>
+      <div class="brand-sub">CONTROL</div>
+    </div>
+  </div>
+  <div style="overflow-y:auto;flex:1">
+    <div class="nav-section">Chat</div>
+    <div class="nav-item active" onclick="showPage('chat')"><span class="nav-icon">💬</span> Chat</div>
+    <div class="nav-section">Control</div>
+    <div class="nav-item" onclick="showPage('overview')"><span class="nav-icon">📊</span> Overview</div>
+    <div class="nav-item" onclick="showPage('channels')"><span class="nav-icon">📡</span> Channels</div>
+    <div class="nav-item" onclick="showPage('sessions')"><span class="nav-icon">🗂️</span> Sessions</div>
+    <div class="nav-item" onclick="showPage('usage')"><span class="nav-icon">📈</span> Usage</div>
+    <div class="nav-item" onclick="showPage('cron')"><span class="nav-icon">⏰</span> Cron Jobs</div>
+    <div class="nav-section">Agent</div>
+    <div class="nav-item" onclick="showPage('agents')"><span class="nav-icon">🤖</span> Agents <span class="nav-badge">5</span></div>
+    <div class="nav-item" onclick="showPage('skills')"><span class="nav-icon">⚡</span> Skills</div>
+    <div class="nav-item" onclick="showPage('nodes')"><span class="nav-icon">🖥️</span> Nodes</div>
+    <div class="nav-section">Settings</div>
+    <div class="nav-item" onclick="showPage('config')"><span class="nav-icon">⚙️</span> Config</div>
+    <div class="nav-item" onclick="showPage('communications')"><span class="nav-icon">📨</span> Communications</div>
+    <div class="nav-item" onclick="showPage('appearance')"><span class="nav-icon">🎨</span> Appearance</div>
+    <div class="nav-item" onclick="showPage('automation')"><span class="nav-icon">🔁</span> Automation</div>
+    <div class="nav-item" onclick="showPage('logs')"><span class="nav-icon">📋</span> Logs</div>
+  </div>
+  <div class="sidebar-version"><span class="version-dot"></span> v1.0.0 &nbsp;|&nbsp; BibsClaw</div>
+</div>
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title" id="page-title">Chat</div>
+      <div class="topbar-sub" id="page-sub">Talk to BibsClaw AI</div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn btn-ghost" onclick="refreshStatus()">↻ Refresh</button>
+      <button class="btn btn-primary" id="main-action-btn">+ New Chat</button>
+    </div>
+  </div>
+  <div class="content" id="main-content">
+
+    <!-- CHAT PAGE -->
+    <div class="page active" id="page-chat" style="height:calc(100vh - 100px);display:flex;flex-direction:column">
+      <div class="chat-messages" id="chat-messages">
+        <div>
+          <div class="msg-label">BibsClaw AI</div>
+          <div class="msg msg-ai">👋 Hello Bibin! I'm BibsClaw, your personal AI assistant. I can help you with coding, research, automation, marketing, and more. What would you like to do today?</div>
         </div>
-        <nav class="nav">
-            <a class="nav-item active" data-view="chat"><span class="material-icons-round">chat</span><span class="nav-label">Chat</span></a>
-            <a class="nav-item" data-view="analytics"><span class="material-icons-round">analytics</span><span class="nav-label">Analytics</span></a>
-            <a class="nav-item" data-view="tasks"><span class="material-icons-round">task_alt</span><span class="nav-label">Tasks</span></a>
-            <a class="nav-item" data-view="files"><span class="material-icons-round">folder</span><span class="nav-label">Files</span></a>
-            <a class="nav-item" data-view="terminal"><span class="material-icons-round">terminal</span><span class="nav-label">Terminal</span></a>
-            <a class="nav-item" data-view="health"><span class="material-icons-round">monitor_heart</span><span class="nav-label">Health</span></a>
-        </nav>
-        <div class="sidebar-footer">
-            <a class="nav-item" data-view="settings"><span class="material-icons-round">settings</span><span class="nav-label">Settings</span></a>
-        </div>
-    </aside>
-
-    <!-- Main Content -->
-    <div class="main">
-        <!-- Top Bar -->
-        <header class="topbar">
-            <div class="topbar-left">
-                <button class="icon-btn" id="sidebarToggle"><span class="material-icons-round" style="font-size:20px">menu</span></button>
-                <span id="providerBadge" class="provider-badge">PERPLEXITY</span>
-            </div>
-            <div class="topbar-right">
-                <div class="status-pill">
-                    <span class="status-dot" id="statusDot"></span>
-                    <span id="statusText">Connecting...</span>
-                </div>
-                <button class="icon-btn" id="clearBtn" title="Clear chat"><span class="material-icons-round" style="font-size:18px">delete_outline</span></button>
-            </div>
-        </header>
-
-        <!-- Chat Area -->
-        <div id="view-chat" class="view-panel active">
-        <div class="chat-area">
-            <div class="messages" id="messages">
-                <div class="welcome-screen" id="welcomeScreen">
-                    <div class="welcome-icon"><span class="material-icons-round" style="font-size:36px">auto_awesome</span></div>
-                    <h2>Welcome to BibsClaw</h2>
-                    <p>Your personal AI assistant powered by Perplexity. Ask anything, automate tasks, or use voice commands.</p>
-                    <div class="quick-actions">
-                        <button class="quick-action" onclick="quickSend('What can you do?')">What can you do?</button>
-                        <button class="quick-action" onclick="quickSend('Show system health')">System Health</button>
-                        <button class="quick-action" onclick="quickSend('List scheduled tasks')">View Tasks</button>
-                        <button class="quick-action" onclick="quickSend('Help me write code')">Code Help</button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="thinking" id="thinking">
-                <div class="dot-pulse"><span></span><span></span><span></span></div>
-                <span id="thinkingText">Thinking...</span>
-            </div>
-
-            <div class="input-area">
-                <div class="input-wrapper">
-                    <input type="text" id="messageInput" placeholder="Ask BibsClaw anything..." autocomplete="off">
-                    <button class="btn-voice" id="voiceBtn" title="Voice input"><span class="material-icons-round" style="font-size:20px">mic</span></button>
-                    <button class="btn-send" id="sendBtn"><span class="material-icons-round" style="font-size:18px">send</span> Send</button>
-                </div>
-            </div>
-        </div>
+      </div>
+      <div class="chat-input-bar">
+        <textarea class="chat-input" id="chat-input" placeholder="Message BibsClaw..." onkeydown="handleChatKey(event)"></textarea>
+        <button class="btn btn-primary" onclick="sendMessage()" style="height:42px;padding:0 18px">Send</button>
+      </div>
     </div>
 
-        </div><!-- end view-chat -->
-        <div id="view-analytics" class="view-panel">
-          <div class="panel-page">
-            <p class="section-title">Analytics &amp; Usage</p>
-            <div class="panel-grid">
-              <div class="stat-card"><h3>Total Chats</h3><div class="stat-value" id="stat-chats">--</div><div class="stat-sub">All time</div></div>
-              <div class="stat-card"><h3>API Provider</h3><div class="stat-value" id="stat-provider" style="font-size:20px">Perplexity</div><div class="stat-sub">Active model</div></div>
-              <div class="stat-card"><h3>Uptime</h3><div class="stat-value" id="stat-uptime">--</div><div class="stat-sub">Server uptime</div></div>
-              <div class="stat-card"><h3>Tasks Run</h3><div class="stat-value" id="stat-tasks">--</div><div class="stat-sub">Scheduled &amp; manual</div></div>
-            </div>
-            <p class="section-title">API Health</p>
-            <table class="info-table">
-              <thead><tr><th>Service</th><th>Status</th><th>Provider</th></tr></thead>
-              <tbody id="api-table">
-                <tr><td>Chat AI</td><td><span class="status-badge status-ok">Online</span></td><td>Perplexity</td></tr>
-                <tr><td>Voice STT</td><td><span class="status-badge status-ok">Online</span></td><td>Web Speech API</td></tr>
-                <tr><td>Voice TTS</td><td><span class="status-badge status-ok" id="tts-status">Online</span></td><td>ElevenLabs</td></tr>
-                <tr><td>Telegram Bot</td><td><span class="status-badge status-ok" id="tg-status">Online</span></td><td>Telegram API</td></tr>
-              </tbody>
-            </table>
+    <!-- OVERVIEW PAGE -->
+    <div class="page" id="page-overview">
+      <div class="grid-4" style="margin-bottom:20px">
+        <div class="stat-card"><div class="stat-label">Status</div><div class="stat-value" style="font-size:16px"><span class="status-dot status-green"></span>Online</div><div class="stat-sub">Railway Production</div></div>
+        <div class="stat-card"><div class="stat-label">Active Agents</div><div class="stat-value">5</div><div class="stat-sub">All running</div></div>
+        <div class="stat-card"><div class="stat-label">Cron Jobs</div><div class="stat-value" id="cron-count">0</div><div class="stat-sub">Scheduled</div></div>
+        <div class="stat-card"><div class="stat-label">API Cost Today</div><div class="stat-value">$0.00</div><div class="stat-sub">Within budget</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">System Health</div>
+          <div class="card-sub">Service status and uptime</div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;color:#aaa">BibsClaw API</span><span class="tag tag-active">● Online</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;color:#aaa">Telegram Bot</span><span id="tg-status" class="tag tag-warning">● Checking...</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;color:#aaa">Scheduler</span><span class="tag tag-active">● Running</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;color:#aaa">Voice Interface</span><span class="tag tag-core">● Standby</span></div>
           </div>
         </div>
-        <div id="view-tasks" class="view-panel">
-            <div class="panel-page">
-                <h2 class="section-title">Scheduled Tasks</h2>
-                <div class="panel-grid">
-                    <div class="stat-card"><h3>Active Tasks</h3><div class="stat-value" id="stat-tasks-active">--</div></div>
-                    <div class="stat-card"><h3>Total Runs</h3><div class="stat-value" id="stat-tasks-runs">--</div></div>
-                </div>
-                <h3 class="section-title">Task List</h3>
-                <div id="tasks-panel-list"><div class="empty-state">No tasks scheduled yet.</div></div>
-            </div>
-        </div>
-        <div id="view-files" class="view-panel">
-          <div class="panel-page">
-            <p class="section-title">File Explorer</p>
-            <ul class="file-list" id="files-list">
-              <li class="file-item"><span class="file-icon material-icons-round" style="font-size:18px">description</span><span>Loading...</span></li>
-            </ul>
+        <div class="card">
+          <div class="card-title">Recent Activity</div>
+          <div class="card-sub">Last agent actions</div>
+          <div id="activity-log" style="font-size:12px;color:#888;display:flex;flex-direction:column;gap:8px">
+            <div>⚡ Waiting for activity...</div>
           </div>
         </div>
-        <div id="view-terminal" class="view-panel">
-          <div class="panel-page">
-            <p class="section-title">System Terminal</p>
-            <div class="terminal-output" id="term-out">BibsClaw Terminal - Read Only
-Connected to: bibsclaw-production.up.railway.app
+      </div>
+    </div>
 
-$ Type a command in the chat and results appear here
+    <!-- AGENTS PAGE -->
+    <div class="page" id="page-agents">
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-title">Agent Army</div>
+        <div class="card-sub">Your 5 specialized autonomous agents</div>
+        <div id="agents-list">
+          <div class="agent-card"><div class="agent-info"><div class="agent-avatar" style="background:#1a2e3e">🔍</div><div><div class="agent-name">Research Agent</div><div class="agent-role">Monitors trends, competitors, Reddit, ProductHunt</div></div></div><div style="display:flex;align-items:center;gap:10px"><span class="tag tag-active">Active</span><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></div></div>
+          <div class="agent-card"><div class="agent-info"><div class="agent-avatar" style="background:#1a3e1e">💻</div><div><div class="agent-name">Dev Agent</div><div class="agent-role">Writes code, creates PRs, deploys to Railway</div></div></div><div style="display:flex;align-items:center;gap:10px"><span class="tag tag-active">Active</span><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></div></div>
+          <div class="agent-card"><div class="agent-info"><div class="agent-avatar" style="background:#3e1a1a">🐛</div><div><div class="agent-name">Debug Agent</div><div class="agent-role">Monitors logs, catches errors, triggers fixes</div></div></div><div style="display:flex;align-items:center;gap:10px"><span class="tag tag-active">Active</span><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></div></div>
+          <div class="agent-card"><div class="agent-info"><div class="agent-avatar" style="background:#2e1a3e">📣</div><div><div class="agent-name">Marketing Agent</div><div class="agent-role">Blog posts, tweets, SEO, Product Hunt launches</div></div></div><div style="display:flex;align-items:center;gap:10px"><span class="tag tag-active">Active</span><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></div></div>
+          <div class="agent-card"><div class="agent-info"><div class="agent-avatar" style="background:#3e2e1a">💰</div><div><div class="agent-name">Sales Agent</div><div class="agent-role">Outreach, follow-ups, lead management</div></div></div><div style="display:flex;align-items:center;gap:10px"><span class="tag tag-active">Active</span><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Quick Task</div>
+        <div class="card-sub">Send a task to a specific agent</div>
+        <div class="form-group"><label class="form-label">Agent</label><select class="form-select"><option>Research Agent</option><option>Dev Agent</option><option>Debug Agent</option><option>Marketing Agent</option><option>Sales Agent</option></select></div>
+        <div class="form-group"><label class="form-label">Task</label><textarea class="form-input" rows="3" placeholder="Describe the task..."></textarea></div>
+        <button class="btn btn-primary" onclick="alert('Task queued!')">▶ Run Task</button>
+      </div>
+    </div>
+
+    <!-- SKILLS PAGE -->
+    <div class="page" id="page-skills">
+      <div class="card">
+        <div class="card-title">Installed Skills</div>
+        <div class="card-sub">Toggle capabilities for your agents</div>
+        <div>
+          <div class="skill-item"><div class="skill-info"><div class="skill-icon">🌐</div><div><div class="skill-name">web-search</div><div class="skill-desc">Search the web for real-time info</div></div></div><div style="display:flex;align-items:center;gap:10px"><span class="tag tag-core">CORE</span><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></div></div>
+          <div class="skill-item"><div class="skill-info"><div class="skill-icon">🐙</div><div><div class="skill-name">github</div><div class="skill-desc">Read, write and manage GitHub repos</div></div></div><div style="display:flex;align-items:center;gap:10px"><span class="tag tag-core">CORE</span><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></div></div>
+          <div class="skill-item"><div class="skill-info"><div class="skill-icon">📂</div><div><div class="skill-name">file-system</div><div class="skill-desc">Read and write files on the host</div></div></div><div style="display:flex;align-items:center;gap:10px"><span class="tag tag-core">CORE</span><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></div></div>
+          <div class="skill-item"><div class="skill-info"><div class="skill-icon">💻</div><div><div class="skill-name">shell</div><div class="skill-desc">Run shell commands and scripts</div></div></div><div style="display:flex;align-items:center;gap:10px"><span class="tag tag-core">CORE</span><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></div></div>
+          <div class="skill-item"><div class="skill-info"><div class="skill-icon">📧</div><div><div class="skill-name">gmail</div><div class="skill-desc">Send and read emails</div></div></div><div style="display:flex;align-items:center;gap:10px"><span class="tag tag-warning">SETUP</span><label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label></div></div>
+          <div class="skill-item"><div class="skill-info"><div class="skill-icon">🐦</div><div><div class="skill-name">twitter</div><div class="skill-desc">Post and monitor Twitter/X</div></div></div><div style="display:flex;align-items:center;gap:10px"><span class="tag tag-warning">SETUP</span><label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label></div></div>
+          <div class="skill-item"><div class="skill-info"><div class="skill-icon">🎤</div><div><div class="skill-name">voice</div><div class="skill-desc">Whisper STT + ElevenLabs TTS</div></div></div><div style="display:flex;align-items:center;gap:10px"><span class="tag tag-core">CORE</span><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></div></div>
+          <div class="skill-item"><div class="skill-info"><div class="skill-icon">📱</div><div><div class="skill-name">telegram</div><div class="skill-desc">Telegram bot messaging</div></div></div><div style="display:flex;align-items:center;gap:10px"><span class="tag tag-active">ACTIVE</span><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHANNELS PAGE -->
+    <div class="page" id="page-channels">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">📱 Telegram Bot</div>
+          <div class="card-sub">Bot status and configuration</div>
+          <table class="table"><tr><td style="color:#888">Status</td><td><span class="status-dot status-green"></span>Running</td></tr><tr><td style="color:#888">Mode</td><td>Polling</td></tr><tr><td style="color:#888">Last Probe</td><td id="tg-probe">Checking...</td></tr></table>
+        </div>
+        <div class="card">
+          <div class="card-title">💬 WhatsApp</div>
+          <div class="card-sub">WhatsApp Web integration</div>
+          <table class="table"><tr><td style="color:#888">Status</td><td><span class="status-dot status-red"></span>Not Linked</td></tr><tr><td style="color:#888">Connected</td><td>No</td></tr></table>
+          <button class="btn btn-primary" style="margin-top:12px">Link WhatsApp</button>
+        </div>
+        <div class="card">
+          <div class="card-title">🎙️ Voice Interface</div>
+          <div class="card-sub">Whisper STT + ElevenLabs TTS</div>
+          <table class="table"><tr><td style="color:#888">STT</td><td>Whisper (OpenAI)</td></tr><tr><td style="color:#888">TTS</td><td>ElevenLabs</td></tr><tr><td style="color:#888">Status</td><td><span class="status-dot status-yellow"></span>Standby</td></tr></table>
+        </div>
+        <div class="card">
+          <div class="card-title">🤖 Discord Bot</div>
+          <div class="card-sub">Discord server integration</div>
+          <table class="table"><tr><td style="color:#888">Status</td><td><span class="status-dot status-green"></span>Connected</td></tr><tr><td style="color:#888">Mode</td><td>Bot</td></tr></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- CRON PAGE -->
+    <div class="page" id="page-cron">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Scheduled Jobs</div>
+          <div class="card-sub">All recurring agent tasks</div>
+          <div id="cron-list">
+            <div style="color:#888;font-size:13px;padding:16px 0;text-align:center">No jobs yet. Create one →</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">New Job</div>
+          <div class="card-sub">Create a scheduled agent run</div>
+          <div class="form-group"><label class="form-label">Job Name *</label><input class="form-input" id="cron-name" placeholder="e.g. Daily Research Scan"></div>
+          <div class="form-group"><label class="form-label">Agent</label><select class="form-select" id="cron-agent"><option>Research Agent</option><option>Dev Agent</option><option>Debug Agent</option><option>Marketing Agent</option><option>Sales Agent</option></select></div>
+          <div class="form-group"><label class="form-label">Schedule (cron)</label><input class="form-input" id="cron-schedule" placeholder="0 9 * * * (daily 9am)"></div>
+          <div class="form-group"><label class="form-label">Prompt / Task</label><textarea class="form-input" id="cron-prompt" rows="3" placeholder="What should the agent do..."></textarea></div>
+          <button class="btn btn-primary" onclick="addCronJob()">+ Create Job</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- USAGE PAGE -->
+    <div class="page" id="page-usage">
+      <div class="grid-4" style="margin-bottom:20px">
+        <div class="stat-card"><div class="stat-label">Messages Today</div><div class="stat-value" id="msg-count">0</div><div class="stat-sub">0 user · 0 assistant</div></div>
+        <div class="stat-card"><div class="stat-label">Tokens Used</div><div class="stat-value" id="token-count">0</div><div class="stat-sub">This session</div></div>
+        <div class="stat-card"><div class="stat-label">Cost Today</div><div class="stat-value">$0.00</div><div class="stat-sub">Within budget</div></div>
+        <div class="stat-card"><div class="stat-label">Active Sessions</div><div class="stat-value">1</div><div class="stat-sub">Live</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Usage Overview</div>
+        <div class="card-sub">Token consumption and cost per agent</div>
+        <table class="table">
+          <thead><tr><th>Agent</th><th>Messages</th><th>Tokens</th><th>Cost</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td>Research Agent</td><td>0</td><td>0</td><td>$0.00</td><td><span class="tag tag-active">Active</span></td></tr>
+            <tr><td>Dev Agent</td><td>0</td><td>0</td><td>$0.00</td><td><span class="tag tag-active">Active</span></td></tr>
+            <tr><td>Debug Agent</td><td>0</td><td>0</td><td>$0.00</td><td><span class="tag tag-active">Active</span></td></tr>
+            <tr><td>Marketing Agent</td><td>0</td><td>0</td><td>$0.00</td><td><span class="tag tag-active">Active</span></td></tr>
+            <tr><td>Sales Agent</td><td>0</td><td>0</td><td>$0.00</td><td><span class="tag tag-active">Active</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SESSIONS PAGE -->
+    <div class="page" id="page-sessions">
+      <div class="card">
+        <div class="card-title">Active Sessions</div>
+        <div class="card-sub">Live agent sessions and memory stores</div>
+        <table class="table">
+          <thead><tr><th>Key</th><th>Label</th><th>Kind</th><th>Updated</th><th>Tokens</th></tr></thead>
+          <tbody id="sessions-body">
+            <tr><td style="color:#e85d04">agent:main:main</td><td>heartbeat</td><td><span class="tag tag-active">direct</span></td><td>Just now</td><td>n/a</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- CONFIG PAGE -->
+    <div class="page" id="page-config">
+      <div class="card">
+        <div class="card-title">BibsClaw Configuration</div>
+        <div class="card-sub">Core settings and API keys</div>
+        <div class="grid-2">
+          <div class="form-group"><label class="form-label">Perplexity API Key</label><input class="form-input" type="password" placeholder="pplx-..."></div>
+          <div class="form-group"><label class="form-label">Anthropic API Key</label><input class="form-input" type="password" placeholder="sk-ant-..."></div>
+          <div class="form-group"><label class="form-label">OpenAI API Key</label><input class="form-input" type="password" placeholder="sk-..."></div>
+          <div class="form-group"><label class="form-label">ElevenLabs API Key</label><input class="form-input" type="password" placeholder="..."></div>
+          <div class="form-group"><label class="form-label">Telegram Bot Token</label><input class="form-input" type="password" placeholder="123456:ABC..."></div>
+          <div class="form-group"><label class="form-label">Railway URL</label><input class="form-input" value="https://bibsclaw-production.up.railway.app"></div>
+        </div>
+        <button class="btn btn-primary" onclick="alert('Config saved!')">💾 Save Config</button>
+      </div>
+    </div>
+
+    <!-- LOGS PAGE -->
+    <div class="page" id="page-logs">
+      <div class="card" style="height:calc(100vh - 160px)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <div><div class="card-title">Live Logs</div><div class="card-sub">Real-time agent activity stream</div></div>
+          <button class="btn btn-ghost" onclick="document.getElementById('log-output').innerHTML=''">Clear</button>
+        </div>
+        <div id="log-output" style="background:#0a0a0b;border:1px solid #2a2a2e;border-radius:8px;padding:14px;height:calc(100% - 60px);overflow-y:auto;font-family:monospace;font-size:12px;color:#22c55e">
+          <div>[BibsClaw] System initialized</div>
+          <div>[BibsClaw] Socket.IO ready</div>
+          <div>[BibsClaw] Waiting for connections...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMMUNICATIONS PAGE -->
+    <div class="page" id="page-communications">
+      <div class="card">
+        <div class="card-title">Communications Settings</div>
+        <div class="card-sub">Manage notification channels and messaging</div>
+        <div class="form-group"><label class="form-label">Telegram Allowed Users</label><input class="form-input" placeholder="comma-separated user IDs"></div>
+        <div class="form-group"><label class="form-label">Notification Level</label><select class="form-select"><option>All</option><option>Errors Only</option><option>Silent</option></select></div>
+        <button class="btn btn-primary" onclick="alert('Saved!')">Save</button>
+      </div>
+    </div>
+
+    <!-- APPEARANCE PAGE -->
+    <div class="page" id="page-appearance">
+      <div class="card">
+        <div class="card-title">Appearance</div>
+        <div class="card-sub">Customize your control panel</div>
+        <div class="form-group"><label class="form-label">Theme</label><select class="form-select" onchange="applyTheme(this.value)"><option value="dark">Dark (Default)</option><option value="light">Light</option></select></div>
+        <div class="form-group"><label class="form-label">Accent Color</label><input type="color" value="#e85d04" onchange="document.documentElement.style.setProperty('--accent',this.value)" style="background:#111;border:1px solid #2a2a2e;border-radius:7px;padding:4px;height:38px;width:80px;cursor:pointer"></div>
+        <div class="form-group"><label class="form-label">Brand Name</label><input class="form-input" value="BibsClaw"></div>
+      </div>
+    </div>
+
+    <!-- AUTOMATION PAGE -->
+    <div class="page" id="page-automation">
+      <div class="card">
+        <div class="card-title">Automation Rules</div>
+        <div class="card-sub">Trigger-based agent workflows</div>
+        <div style="color:#888;font-size:13px;padding:20px 0;text-align:center">No automation rules yet. Create your first rule below.</div>
+        <div class="form-group"><label class="form-label">Trigger</label><select class="form-select"><option>On Error</option><option>On New Commit</option><option>On Schedule</option><option>On User Message</option></select></div>
+        <div class="form-group"><label class="form-label">Action</label><select class="form-select"><option>Run Debug Agent</option><option>Run Dev Agent</option><option>Send Telegram Alert</option><option>Post to Twitter</option></select></div>
+        <button class="btn btn-primary" onclick="alert('Rule created!')">+ Add Rule</button>
+      </div>
+    </div>
+
+    <!-- NODES PAGE -->
+    <div class="page" id="page-nodes">
+      <div class="card">
+        <div class="card-title">Connected Nodes</div>
+        <div class="card-sub">Execution environments and devices</div>
+        <div class="agent-card"><div class="agent-info"><div class="agent-avatar" style="background:#1a2e3e">🚂</div><div><div class="agent-name">Railway Production</div><div class="agent-role">bibsclaw-production.up.railway.app · us-west2</div></div></div><span class="tag tag-active">● Online</span></div>
+        <div class="agent-card" style="margin-top:8px"><div class="agent-info"><div class="agent-avatar" style="background:#2a1a2e">🦞</div><div><div class="agent-name">Main Gateway</div><div class="agent-role">Local agent runtime · 1 replica</div></div></div><span class="tag tag-active">● Active</span></div>
+      </div>
+    </div>
+
+  </div>
 </div>
-            <div style="margin-top:12px;display:flex;gap:8px">
-              <input class="form-input" id="term-input" placeholder="Run: ls, pwd, git status..." style="flex:1" />
-              <button class="btn-primary" onclick="runTermCmd()">Run</button>
-            </div>
-          </div>
-        </div>
-        <div id="view-health" class="view-panel">
-          <div class="panel-page">
-            <p class="section-title">System Health</p>
-            <div class="health-grid" id="health-grid">
-              <div class="health-item"><div class="health-dot green"></div><div><div class="health-name">API Server</div><div class="health-status" id="hs-api">Checking...</div></div></div>
-              <div class="health-item"><div class="health-dot green"></div><div><div class="health-name">Socket.IO</div><div class="health-status" id="hs-socket">Connected</div></div></div>
-              <div class="health-item"><div class="health-dot" id="hd-perplexity"></div><div><div class="health-name">Perplexity AI</div><div class="health-status" id="hs-perplexity">Checking...</div></div></div>
-              <div class="health-item"><div class="health-dot" id="hd-telegram"></div><div><div class="health-name">Telegram Bot</div><div class="health-status" id="hs-telegram">Checking...</div></div></div>
-              <div class="health-item"><div class="health-dot green"></div><div><div class="health-name">Voice STT</div><div class="health-status">Browser API</div></div></div>
-              <div class="health-item"><div class="health-dot" id="hd-elevenlabs"></div><div><div class="health-name">ElevenLabs TTS</div><div class="health-status" id="hs-elevenlabs">Checking...</div></div></div>
-            </div>
-            <p class="section-title" style="margin-top:24px">Version Info</p>
-            <table class="info-table">
-              <tbody>
-                <tr><td>Version</td><td id="hv-version">v2.0.0</td></tr>
-                <tr><td>Environment</td><td>Production (Railway)</td></tr>
-                <tr><td>Node.js</td><td id="hv-node">--</td></tr>
-                <tr><td>Uptime</td><td id="hv-uptime">--</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-        <div id="view-settings" class="view-panel">
-          <div class="panel-page">
-            <p class="section-title">Settings</p>
-            <div class="form-group"><label class="form-label">AI Provider</label>
-              <select class="form-input" id="set-provider">
-                <option value="perplexity">Perplexity AI (Active)</option>
-                <option value="claude">Anthropic Claude</option>
-              </select>
-            </div>
-            <div class="form-group"><label class="form-label">TTS Voice</label>
-              <select class="form-input" id="set-voice">
-                <option value="rachel">Rachel (ElevenLabs)</option>
-                <option value="adam">Adam (ElevenLabs)</option>
-                <option value="browser">Browser TTS (Free)</option>
-              </select>
-            </div>
-            <div class="form-group"><label class="form-label">Theme</label>
-              <select class="form-input" id="set-theme">
-                <option value="dark">Dark (Default)</option>
-                <option value="darker">Darker</option>
-              </select>
-            </div>
-            <div class="form-group"><label class="form-label">Dashboard Title</label>
-              <input class="form-input" id="set-title" value="BibsClaw AI Assistant" />
-            </div>
-            <button class="btn-primary" onclick="saveSettings()">Save Settings</button>
-            <p style="margin-top:24px" class="section-title">About BibsClaw</p>
-            <table class="info-table">
-              <tbody>
-                <tr><td>Version</td><td>v2.0.0</td></tr>
-                <tr><td>Built by</td><td>Bibin (Abu Dhabi, UAE)</td></tr>
-                <tr><td>Deployed on</td><td>Railway</td></tr>
-                <tr><td>Repository</td><td><a href="https://github.com/bibinsmart007/bibsclaw" target="_blank" style="color:#a78bfa">github.com/bibinsmart007/bibsclaw</a></td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-    <!-- Right Panel -->
-    <aside class="right-panel">
-        <div class="panel-tabs">
-            <div class="panel-tab active" data-panel="tasks">Tasks</div>
-            <div class="panel-tab" data-panel="tools">Tools</div>
-        </div>
-        <div class="panel-content">
-            <div id="taskPanel">
-                <div class="empty-state" id="taskList"><span class="material-icons-round" style="font-size:32px;display:block;margin-bottom:8px;opacity:0.3">event_note</span>No scheduled tasks</div>
-            </div>
-            <div id="toolPanel" style="display:none">
-                <div class="empty-state" id="toolLog"><span class="material-icons-round" style="font-size:32px;display:block;margin-bottom:8px;opacity:0.3">build</span>No tool activity</div>
-            </div>
-        </div>
-    </aside>
+<script>
+const API = '';
+let cronJobs = [];
+let messageCount = 0;
+let tokenCount = 0;
 
-    <script>
-    // Socket.IO
-    const socket = io({ reconnection: true, reconnectionAttempts: 10, reconnectionDelay: 1000 });
-    const $ = id => document.getElementById(id);
-    const messages = $('messages'), input = $('messageInput'), sendBtn = $('sendBtn');
-    const voiceBtn = $('voiceBtn'), clearBtn = $('clearBtn'), thinking = $('thinking');
-    const thinkingText = $('thinkingText'), statusDot = $('statusDot'), statusText = $('statusText');
-    const providerBadge = $('providerBadge'), taskList = $('taskList'), toolLog = $('toolLog');
-
-    function addMessage(role, text) {
-        const ws = $('welcomeScreen'); if (ws) ws.remove();
-        const div = document.createElement('div');
-        div.className = 'msg ' + role;
-        const bubble = document.createElement('div');
-        bubble.className = 'msg-bubble';
-        bubble.textContent = text;
-        div.appendChild(bubble);
-        const time = document.createElement('div');
-        time.className = 'msg-time';
-        time.textContent = new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-        div.appendChild(time);
-        messages.appendChild(div);
-        messages.scrollTop = messages.scrollHeight;
-    }
-
-    function quickSend(msg) { input.value = msg; sendMessage(); }
-
-    function sendMessage() {
-        const msg = input.value.trim();
-        if (!msg) return;
-        addMessage('user', msg);
-        input.value = '';
-        sendBtn.disabled = true;
-        thinkingText.textContent = 'Thinking...';
-        thinking.classList.add('visible');
-        socket.emit('chat', msg);
-    }
-
-    input.addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
-    sendBtn.addEventListener('click', sendMessage);
-    clearBtn.addEventListener('click', () => {
-        fetch('/api/history/clear', { method: 'POST' }).then(() => {
-            messages.innerHTML = '';
-            addMessage('system', 'Conversation cleared');
-        });
-    });
-
-        // Voice - Enhanced with proper mic permission and auto-restart
-        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-        let recognition = null, isListening = false;
-        let voiceTimeout = null;
-        if (SR) {
-            recognition = new SR();
-            recognition.continuous = true;
-            recognition.interimResults = true;
-            recognition.lang = 'en-US';
-            recognition.maxAlternatives = 1;
-            recognition.onstart = () => {
-                isListening = true;
-                voiceBtn.classList.add('recording');
-                input.placeholder = 'Listening... Speak now';
-                console.log('[Voice] Started');
-            };
-            recognition.onresult = (e) => {
-                let interim = '';
-                let finalT = '';
-                for (let i = e.resultIndex; i < e.results.length; i++) {
-                    const t = e.results[i][0].transcript;
-                    if (e.results[i].isFinal) { finalT += t; }
-                    else { interim += t; }
-                }
-                if (finalT) {
-                    input.value = finalT;
-                    clearTimeout(voiceTimeout);
-                    voiceTimeout = setTimeout(() => {
-                        if (input.value.trim()) { stopVoice(); sendMessage(); }
-                    }, 800);
-                } else if (interim) {
-                    input.value = interim;
-                }
-            };
-            recognition.onerror = (e) => {
-                console.log('[Voice] Error:', e.error);
-                if (e.error === 'not-allowed' || e.error === 'permission-denied') {
-                    stopVoice();
-                    addMessage('system','Microphone access denied. Allow mic in browser settings.');
-                } else if (e.error === 'no-speech') {
-                    input.placeholder = 'No speech heard. Try again...';
-                } else if (e.error === 'audio-capture') {
-                    stopVoice();
-                    addMessage('system','No microphone found. Connect a mic and retry.');
-                } else if (e.error === 'network') {
-                    stopVoice();
-                    addMessage('system','Network error in voice recognition.');
-                } else if (e.error !== 'aborted') {
-                    addMessage('system','Voice error: ' + e.error);
-                }
-            };
-            recognition.onend = () => {
-                console.log('[Voice] Ended, listening:', isListening);
-                if (isListening) {
-                    try { recognition.start(); }
-                    catch(e) { console.log('[Voice] Restart failed:', e); stopVoice(); }
-                }
-            };
-        }
-        function stopVoice() {
-            isListening = false;
-            voiceBtn.classList.remove('recording');
-            input.placeholder = 'Ask BibsClaw anything...';
-            clearTimeout(voiceTimeout);
-            try { if(recognition) recognition.stop(); } catch(e) {}
-        }
-        function startVoice() {
-            if (!SR) { addMessage('system','Speech recognition not supported. Use Chrome/Edge.'); return; }
-            navigator.mediaDevices.getUserMedia({ audio: true })
-                .then(s => {
-                    s.getTracks().forEach(t => t.stop());
-                    isListening = true;
-                    input.value = '';
-                    try { recognition.start(); }
-                    catch(e) { recognition.stop(); setTimeout(() => recognition.start(), 200); }
-                })
-                .catch(() => addMessage('system','Mic access denied. Allow mic permission and retry.'));
-        }
-        voiceBtn.addEventListener('click', () => {
-            isListening ? stopVoice() : startVoice();
-        });
-
-    // Socket events
-    socket.on('response', t => { addMessage('assistant', t); sendBtn.disabled = false; thinking.classList.remove('visible'); });
-    socket.on('thinking', v => { if(v){thinking.classList.add('visible')}else{thinking.classList.remove('visible');sendBtn.disabled=false;} });
-    socket.on('agentThinking', t => { thinkingText.textContent = t; thinking.classList.add('visible'); });
-    socket.on('error', e => { addMessage('system','Error: '+e); sendBtn.disabled=false; thinking.classList.remove('visible'); });
-    socket.on('tts_audio', b64 => { try{new Audio('data:audio/mpeg;base64,'+b64).play().catch(()=>{})}catch(e){} });
-    socket.on('toolCall', d => {
-        const el = document.createElement('div'); el.className='tool-entry'; el.textContent='> '+d.name;
-        if(toolLog.querySelector('.empty-state')) toolLog.innerHTML='';
-        toolLog.prepend(el);
-    });
-    socket.on('toolResult', d => {
-        const el = document.createElement('div'); el.className='tool-entry '+(d.result.success?'success':'fail');
-        el.textContent=d.name+': '+(d.result.success?'OK':'FAIL');
-        toolLog.prepend(el);
-    });
-    socket.on('taskRun', t => {
-        const el = document.createElement('div'); el.className='tool-entry success'; el.textContent='Task: '+t.name;
-        toolLog.prepend(el);
-    });
-    socket.on('connected', d => { providerBadge.textContent = (d.provider||'AI').toUpperCase(); });
-    socket.on('disconnect', () => { statusDot.classList.add('offline'); statusText.textContent = 'Disconnected'; });
-    socket.on('connect', () => {
-        statusDot.classList.remove('offline'); statusText.textContent = 'Connected';
-        fetch('/api/tasks').then(r=>r.json()).then(tasks => {
-            if(!tasks.length) return;
-            taskList.innerHTML='';
-            tasks.forEach(t => { const d=document.createElement('div');d.className='task-card';d.innerHTML='<div class="task-name">'+t.name+'</div><div class="task-meta">'+t.cronExpression+' | Runs: '+t.runCount+'</div>';taskList.appendChild(d);});
-        }).catch(()=>{});
-    });
-
-    // Sidebar toggle
-    $('sidebarToggle').addEventListener('click', () => { $('sidebar').classList.toggle('collapsed'); $('sidebar').classList.toggle('open'); });
-
-    // Panel tabs
-    document.querySelectorAll('.panel-tab').forEach(tab => {
-        tab.addEventListener('click', () => {
-            document.querySelectorAll('.panel-tab').forEach(t=>t.classList.remove('active'));
-            tab.classList.add('active');
-            $('taskPanel').style.display = tab.dataset.panel==='tasks'?'block':'none';
-            $('toolPanel').style.display = tab.dataset.panel==='tools'?'block':'none';
-        });
-    });
-    
-// ======= VIEW PANEL NAVIGATION =======
-function showView(viewName) {
-  // Hide all view panels
-  document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active'));
-  // Show target panel
-  const target = document.getElementById('view-' + viewName);
-  if (target) target.classList.add('active');
-  // Update nav item active state
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => { p.classList.remove('active'); p.style.display='none'; });
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  const navItem = document.querySelector('.nav-item[data-view="' + viewName + '"]');
-  if (navItem) navItem.classList.add('active');
-  // Load data for specific panels
-  if (viewName === 'health') loadHealthData();
-  if (viewName === 'analytics') loadAnalyticsData();
-  if (viewName === 'files') loadFilesData();
-        if (viewName === 'tasks') loadTasksData();
+  const page = document.getElementById('page-' + name);
+  if (page) { page.classList.add('active'); page.style.display = name === 'chat' ? 'flex' : 'block'; }
+  event.currentTarget.classList.add('active');
+  const titles = {chat:'Chat',overview:'Overview',agents:'Agents',skills:'Skills',channels:'Channels',cron:'Cron Jobs',usage:'Usage',sessions:'Sessions',config:'Config',logs:'Logs',communications:'Communications',appearance:'Appearance',automation:'Automation',nodes:'Nodes'};
+  const subs = {chat:'Talk to BibsClaw AI',overview:'System status and activity',agents:'Manage your AI agent army',skills:'Toggle agent capabilities',channels:'Messaging channels',cron:'Scheduled agent tasks',usage:'API usage and costs',sessions:'Active agent sessions',config:'API keys and settings',logs:'Real-time activity stream',communications:'Notification settings',appearance:'Customize the UI',automation:'Trigger-based workflows',nodes:'Connected environments'};
+  document.getElementById('page-title').textContent = titles[name] || name;
+  document.getElementById('page-sub').textContent = subs[name] || '';
+  const actions = {chat:'+ New Chat',agents:'+ New Agent',skills:'Browse Store',cron:'+ New Job',logs:'Export Logs'};
+  document.getElementById('main-action-btn').textContent = actions[name] || '+ New';
 }
 
-// Set data-view on nav items by text content
-function initNavItems() {
-  document.querySelectorAll('.nav-item').forEach(item => {
-    const label = item.querySelector('.nav-label');
-    if (!label) return;
-    const text = label.textContent.trim().toLowerCase();
-    item.setAttribute('data-view', text);
-    item.style.cursor = 'pointer';
-    item.addEventListener('click', function(e) {
-      e.preventDefault();
-      showView(text);
-    });
-  });
-}
-
-// Load health data from API
-async function loadHealthData() {
-  try {
-    const r = await fetch('/api/health');
-    const d = await r.json();
-    const isOk = d.status === 'ok';
-    document.getElementById('hs-api').textContent = isOk ? 'Online' : 'Error';
-    document.getElementById('hv-version').textContent = d.version || 'v2.0.0';
-    document.getElementById('hv-uptime').textContent = d.uptime ? Math.floor(d.uptime/60) + 'm' : '--';
-    // Perplexity
-    const pxOk = d.providers && d.providers.includes('perplexity');
-    document.getElementById('hs-perplexity').textContent = pxOk ? 'Connected' : 'Not configured';
-    document.getElementById('hd-perplexity').className = 'health-dot ' + (pxOk ? 'green' : 'yellow');
-    // Telegram
-    document.getElementById('hs-telegram').textContent = d.telegram ? 'Connected' : 'Not configured';
-    document.getElementById('hd-telegram').className = 'health-dot ' + (d.telegram ? 'green' : 'yellow');
-    // ElevenLabs
-    document.getElementById('hs-elevenlabs').textContent = 'Not configured';
-    document.getElementById('hd-elevenlabs').className = 'health-dot yellow';
-  } catch(err) {
-    document.getElementById('hs-api').textContent = 'Error: ' + err.message;
-  }
-}
-
-// Load analytics data
-async function loadAnalyticsData() {
-  try {
-    const r = await fetch('/api/health');
-    const d = await r.json();
-    if (document.getElementById('stat-provider')) {
-      document.getElementById('stat-provider').textContent = d.provider || 'Perplexity';
-    }
-    if (d.uptime && document.getElementById('stat-uptime')) {
-      const mins = Math.floor(d.uptime / 60);
-      const hrs = Math.floor(mins / 60);
-      document.getElementById('stat-uptime').textContent = hrs > 0 ? hrs + 'h ' + (mins%60) + 'm' : mins + 'm';
-    }
-    // Message count from localStorage
-    const msgCount = parseInt(localStorage.getItem('bibsclaw_msg_count') || '0');
-    if (document.getElementById('stat-chats')) document.getElementById('stat-chats').textContent = msgCount;
-  } catch(e) {}
-}
-
-// Load files
-async function loadFilesData() {
-  const list = document.getElementById('files-list');
-  if (!list) return;
-  try {
-    const r = await fetch('/api/agent/files');
-    if (!r.ok) throw new Error('Not available');
-    const d = await r.json();
-    list.innerHTML = (d.files || []).map(f =>
-      `<li class="file-item"><span class="material-icons-round file-icon">description</span><span>${f}</span></li>`
-    ).join('');
-  } catch(e) {
-    list.innerHTML = '<li class="file-item"><span style="color:rgba(255,255,255,0.4)">Files API not available in production</span></li>';
-  }
-}
-
-// Terminal command runner
-async function runTermCmd() {
-  const input = document.getElementById('term-input');
-  const out = document.getElementById('term-out');
-  if (!input || !out) return;
-  const cmd = input.value.trim();
-  if (!cmd) return;
-  out.textContent += '
-$ ' + cmd + '
-';
+async function sendMessage() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+  appendMsg(text, 'user');
   input.value = '';
+  messageCount++;
+  document.getElementById('msg-count').textContent = messageCount;
+  appendMsg('🤔 Thinking...', 'ai', 'thinking');
   try {
-    const r = await fetch('/api/agent/exec', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({command: cmd}) });
-    const d = await r.json();
-    out.textContent += (d.output || d.error || 'Done') + '
-';
+    const res = await fetch('/api/chat', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text})});
+    const data = await res.json();
+    removeThinking();
+    appendMsg(data.response || data.message || 'Got it!', 'ai');
+    tokenCount += (data.tokens || 50);
+    document.getElementById('token-count').textContent = tokenCount;
+    addLog('[Chat] User: ' + text.substring(0,40) + '...');
   } catch(e) {
-    out.textContent += 'Error: ' + e.message + '
-';
+    removeThinking();
+    appendMsg('⚠️ Could not reach BibsClaw API. Make sure the server is running on Railway.', 'ai');
   }
-  out.scrollTop = out.scrollHeight;
 }
 
-function saveSettings() {
-  const provider = document.getElementById('set-provider')?.value;
-  const voice = document.getElementById('set-voice')?.value;
-  localStorage.setItem('bibsclaw_provider', provider || 'perplexity');
-  localStorage.setItem('bibsclaw_voice', voice || 'rachel');
-  alert('Settings saved!');
+function appendMsg(text, role, id) {
+  const msgs = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  if (id) div.id = id;
+  div.innerHTML = '<div class="msg-label">' + (role==='user'?'You':'BibsClaw AI') + '</div><div class="msg msg-' + role + '">' + text + '</div>';
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
 }
 
-// Track message count for analytics
-function trackMessage() {
-  const count = parseInt(localStorage.getItem('bibsclaw_msg_count') || '0') + 1;
-  localStorage.setItem('bibsclaw_msg_count', count);
+function removeThinking() {
+  const t = document.getElementById('thinking');
+  if (t) t.remove();
 }
 
-// Initialize navigation on DOM ready
-document.addEventListener('DOMContentLoaded', function() {
-  initNavItems();
-  // Default to chat view active
-  const chatNav = document.querySelector('.nav-item');
-  if (chatNav) chatNav.setAttribute('data-view', 'chat');
+function handleChatKey(e) { if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
+
+function addCronJob() {
+  const name = document.getElementById('cron-name').value.trim();
+  const agent = document.getElementById('cron-agent').value;
+  const schedule = document.getElementById('cron-schedule').value.trim();
+  const prompt = document.getElementById('cron-prompt').value.trim();
+  if (!name || !schedule) { alert('Name and schedule are required'); return; }
+  cronJobs.push({name,agent,schedule,prompt,enabled:true});
+  renderCronJobs();
+  document.getElementById('cron-count').textContent = cronJobs.length;
+  document.getElementById('cron-name').value = '';
+  document.getElementById('cron-schedule').value = '';
+  document.getElementById('cron-prompt').value = '';
+  addLog('[Cron] New job created: ' + name);
+}
+
+function renderCronJobs() {
+  const list = document.getElementById('cron-list');
+  if (!cronJobs.length) { list.innerHTML = '<div style="color:#888;font-size:13px;padding:16px 0;text-align:center">No jobs yet.</div>'; return; }
+  list.innerHTML = cronJobs.map((j,i) => '<div class="agent-card"><div class="agent-info"><div class="agent-avatar" style="background:#1a2e1a">⏰</div><div><div class="agent-name">'+j.name+'</div><div class="agent-role">'+j.agent+' · '+j.schedule+'</div></div></div><div style="display:flex;gap:8px;align-items:center"><span class="cron-badge cron-enabled">Enabled</span><button class="btn btn-ghost" onclick="removeCron('+i+')" style="padding:4px 8px;font-size:11px">✕</button></div></div>').join('');
+}
+
+function removeCron(i) { cronJobs.splice(i,1); renderCronJobs(); document.getElementById('cron-count').textContent = cronJobs.length; }
+
+function addLog(msg) {
+  const log = document.getElementById('log-output');
+  const d = document.createElement('div');
+  d.style.color = msg.includes('Error') ? '#ef4444' : '#22c55e';
+  d.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg;
+  log.appendChild(d);
+  log.scrollTop = log.scrollHeight;
+  const activity = document.getElementById('activity-log');
+  const a = document.createElement('div');
+  a.textContent = '• ' + msg;
+  activity.insertBefore(a, activity.firstChild);
+  if (activity.children.length > 6) activity.removeChild(activity.lastChild);
+}
+
+function refreshStatus() {
+  document.getElementById('tg-probe').textContent = 'Just now';
+  document.getElementById('tg-status').textContent = '● Active';
+  document.getElementById('tg-status').className = 'tag tag-active';
+  addLog('[System] Status refreshed');
+}
+
+// Socket.IO live log
+try {
+  const socket = io();
+  socket.on('log', msg => addLog('[Socket] ' + msg));
+  socket.on('agent-activity', data => addLog('[Agent] ' + (data.message || JSON.stringify(data))));
+} catch(e) {}
+
+// Init
+document.addEventListener('DOMContentLoaded', () => {
+  refreshStatus();
+  setTimeout(() => addLog('[BibsClaw] Control panel loaded'), 500);
 });
 </script>
 </body>
