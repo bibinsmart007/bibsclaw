@@ -391,27 +391,29 @@ export function createDashboardServer(
     }
   });
 
-  // POST /api/service/stop — redeploy with 0 replicas (pause)
+  // POST /api/service/stop — delete active deployment to pause service
   app.post("/api/service/stop", async (_req, res): Promise<void> => {
     try {
       if (!getRailwayToken()) {
         res.status(400).json({ ok: false, error: "RAILWAY_API_TOKEN not configured in Railway variables" });
         return;
       }
-      const data = await railwayGraphQL(`
-        mutation ServiceInstanceUpdate($serviceId: String!, $environmentId: String!, $input: ServiceInstanceUpdateInput!) {
-          serviceInstanceUpdate(serviceId: $serviceId, environmentId: $environmentId, input: $input)
-        }
-      `, {
-        serviceId: RAILWAY_SERVICE_ID,
-        environmentId: RAILWAY_ENV_ID,
-        input: { numReplicas: 0 }
-      });
-      if (data.errors) {
-        res.json({ ok: false, error: data.errors[0]?.message || "GraphQL error" });
+      // Get the active deployment to delete it
+      const deplData = await railwayGraphQL(
+        `{ deployments(input: { serviceId: "${RAILWAY_SERVICE_ID}", environmentId: "${RAILWAY_ENV_ID}" }) { edges { node { id status } } } }`,
+        {}
+      );
+      const edges = deplData?.data?.deployments?.edges ?? [];
+      const active = edges.find((e: any) => e.node.status === "SUCCESS" || e.node.status === "DEPLOYING");
+      if (!active) {
+        res.json({ ok: true, message: "No active deployment found — service may already be stopped" });
         return;
       }
-      res.json({ ok: true, action: "stopped", note: "Service set to 0 replicas — no charges while stopped" });
+      await railwayGraphQL(
+        `mutation { deploymentDelete(id: "${active.node.id}") }`,
+        {}
+      );
+      res.json({ ok: true, message: "Deployment deleted — service stopped" });
     } catch (err) {
       res.status(500).json({ ok: false, error: String(err) });
     }
@@ -424,20 +426,16 @@ export function createDashboardServer(
         res.status(400).json({ ok: false, error: "RAILWAY_API_TOKEN not configured in Railway variables" });
         return;
       }
-      const data = await railwayGraphQL(`
-        mutation ServiceInstanceUpdate($serviceId: String!, $environmentId: String!, $input: ServiceInstanceUpdateInput!) {
-          serviceInstanceUpdate(serviceId: $serviceId, environmentId: $environmentId, input: $input)
-        }
-      `, {
-        serviceId: RAILWAY_SERVICE_ID,
-        environmentId: RAILWAY_ENV_ID,
-        input: { numReplicas: 1 }
-      });
-      if (data.errors) {
-        res.json({ ok: false, error: data.errors[0]?.message || "GraphQL error" });
-        return;
+      // Trigger a fresh redeploy from the latest commit
+      const data = await railwayGraphQL(
+        `mutation { serviceInstanceRedeploy(serviceId: "${RAILWAY_SERVICE_ID}", environmentId: "${RAILWAY_ENV_ID}") }`,
+        {}
+      );
+      if (data?.data?.serviceInstanceRedeploy) {
+        res.json({ ok: true, message: "Service redeployment triggered" });
+      } else {
+        res.json({ ok: false, error: "Redeploy failed", details: data?.errors });
       }
-      res.json({ ok: true, action: "started", note: "Service restored to 1 replica" });
     } catch (err) {
       res.status(500).json({ ok: false, error: String(err) });
     }
