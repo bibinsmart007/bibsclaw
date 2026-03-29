@@ -4,7 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BibsClaw — Agent Company HQ</title>
-<script src="/socket.io/socket.io.js">
+<script src="/socket.io/socket.io.js"></script><script>
+
 // ═══════════════ SERVICE START/STOP
 let serviceRunning = true;
 
@@ -54,6 +55,7 @@ fetch('/api/service/status').then(r => r.json()).then(d => {
   serviceRunning = d.running !== false;
   updateServiceBtn();
 }).catch(() => {});
+
 
 </script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
