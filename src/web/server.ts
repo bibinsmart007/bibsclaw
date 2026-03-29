@@ -13,8 +13,8 @@ import { BibsClawAgent } from "../agent/agent.js";
 import { SpeechToText } from "../voice/stt.js";
 import { TextToSpeech } from "../voice/tts.js";
 import { TaskScheduler } from "../automation/scheduler.js";
-
 import { routeToAgent, getAgentList, getAgent } from "../agent/agentRouter.js";
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -48,6 +48,7 @@ export function createDashboardServer(
   app.use(rateLimiter.middleware());
 
   const log = logger.child("server");
+
   app.use(express.static(path.join(__dirname, "public")));
 
   // Health check
@@ -133,7 +134,6 @@ export function createDashboardServer(
     res.json({ toggled });
   });
 
-  
   // ═══════════════════════════════════════════════════════════════
   // AGENT ROUTING — Each of 25 specialist agents with dedicated
   // system prompts, tools, and Anthropic agentic loop.
@@ -147,58 +147,55 @@ export function createDashboardServer(
 
   // Get a single agent definition
   app.get("/api/agents/:agentId", (req, res): void => {
-    const agent = getAgent(req.params.agentId);
-    if (!agent) {
+    const agentDef = getAgent(req.params.agentId);
+    if (!agentDef) {
       res.status(404).json({ error: "Agent not found" });
       return;
     }
-    res.json(agent);
+    res.json(agentDef);
   });
 
   // Route a message to a specific specialist agent
   app.post("/api/agent/:agentId", async (req, res): Promise<void> => {
     try {
-      const { agentId } = req.params;
+      const agentId = req.params.agentId;
       const { message, history } = req.body;
-
       if (!message) {
         res.status(400).json({ error: "Message is required" });
         return;
       }
-
-      const agent = getAgent(agentId);
-      if (!agent) {
+      const agentDef = getAgent(agentId);
+      if (!agentDef) {
         res.status(404).json({ error: `Unknown agent: ${agentId}` });
         return;
       }
 
       // Emit agent start event to UI via Socket.IO
-      io.emit("agentStart", { agentId, agentName: agent.name, message });
+      io.emit("agentStart", { agentId, agentName: agentDef.name, message });
 
       const result = await routeToAgent(agentId, message, history || []);
 
       // Emit completion event with tool usage
       io.emit("agentComplete", {
         agentId,
-        agentName: agent.name,
+        agentName: agentDef.name,
         toolsUsed: result.toolsUsed,
         tokensUsed: result.tokensUsed,
         model: result.model,
       });
 
       // Log to database
-      db.addChatMessage("user", `[${agent.name}] ${message}`, result.model).catch(() => {});
+      db.addChatMessage("user", `[${agentDef.name}] ${message}`, result.model).catch(() => {});
       db.addChatMessage("assistant", result.response, result.model).catch(() => {});
 
       res.json({
         agentId,
-        agentName: agent.name,
+        agentName: agentDef.name,
         response: result.response,
         toolsUsed: result.toolsUsed,
         tokensUsed: result.tokensUsed,
         model: result.model,
       });
-
     } catch (err) {
       const errorMsg = String(err);
       io.emit("agentError", { agentId: req.params.agentId, error: errorMsg });
@@ -214,19 +211,19 @@ export function createDashboardServer(
         res.status(400).json({ error: "message and agentIds array required" });
         return;
       }
-      
+
       io.emit("broadcastStart", { agentIds, message });
-      
+
       // Run all agents in parallel
       const results = await Promise.allSettled(
         agentIds.map((id: string) => routeToAgent(id, message))
       );
-      
+
       const responses = results.map((r, i) => ({
         agentId: agentIds[i],
-        ...(r.status === "fulfilled" ? r.value : { error: r.reason?.message })
+        ...(r.status === "fulfilled" ? r.value : { error: (r as PromiseRejectedResult).reason?.message })
       }));
-      
+
       io.emit("broadcastComplete", { responses });
       res.json({ responses });
     } catch (err) {
@@ -234,7 +231,7 @@ export function createDashboardServer(
     }
   });
 
-// Conversation history
+  // Conversation history
   app.get("/api/history", (_req, res) => {
     res.json(agent.getHistory());
   });
@@ -290,9 +287,11 @@ export function createDashboardServer(
       try {
         const response = await agent.chat(message);
         socket.emit("response", response);
+
         // Persist to database
         db.addChatMessage("user", message, appConfig.ai.provider).catch(() => {});
         db.addChatMessage("assistant", response, appConfig.ai.provider).catch(() => {});
+
         // Send TTS audio if enabled
         if (tts.enabled) {
           try {
@@ -315,12 +314,8 @@ export function createDashboardServer(
 
   // Forward agent events to Socket.IO
   agent.on("thinking", (text) => io.emit("agentThinking", text));
-  agent.on("toolCall", (name, input) =>
-    io.emit("toolCall", { name, input })
-  );
-  agent.on("toolResult", (name, result) =>
-    io.emit("toolResult", { name, result })
-  );
+  agent.on("toolCall", (name, input) => io.emit("toolCall", { name, input }));
+  agent.on("toolResult", (name, result) => io.emit("toolResult", { name, result }));
   agent.on("message", (msg) => io.emit("message", msg));
   agent.on("error", (err) => io.emit("error", err.message));
 
